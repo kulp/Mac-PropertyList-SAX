@@ -65,7 +65,7 @@ Version 0.01
 
 =cut
 
-$VERSION = 0.02;
+$VERSION = 0.03;
 
 =head1 FUNCTIONS
 

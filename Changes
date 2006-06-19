@@ -7,3 +7,12 @@ Revision history for Mac-PropertyList-SAX
 		Minor changes, including copy-and-paste error fixes and actually
 		including the plist files for the tests in the MANIFEST so the whole
 		package gets built.
+
+0.03	2006-06-19T11:16-0500
+		DOCTYPE declarations in test files were pointing to local paths that do
+		not exist on a non-Macintosh system; I changed these local paths to
+		http://www.apple.com/DTDs/PropertyList-1.0.dtd. This points out a
+		(perhaps unfortunate) consequence of using a real XML parser: it (at
+		least by default) needs access to the DTDs, which are usually on the
+		Internet.
+

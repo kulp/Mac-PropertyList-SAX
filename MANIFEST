@@ -1,0 +1,21 @@
+Changes
+MANIFEST
+META.yml # Will be created by "make dist"
+Makefile.PL
+README
+lib/Mac/PropertyList/SAX.pm
+t/00-load.t
+t/array.t
+t/basic_types.t
+t/container.t
+t/dict.t
+t/false_key.t
+t/import.t
+t/load.t
+t/parse.t
+t/parse_plist_fh.t
+t/plists.t
+t/pod.t
+t/scalar.t
+t/time.t
+t/write.t

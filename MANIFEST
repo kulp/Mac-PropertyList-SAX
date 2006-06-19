@@ -4,6 +4,10 @@ META.yml # Will be created by "make dist"
 Makefile.PL
 README
 lib/Mac/PropertyList/SAX.pm
+plists/com.apple.iPhoto.plist
+plists/com.apple.iTunes.plist
+plists/com.apple.systempreferences.plist
+plists/com.unsanity.windowshadex.plist
 t/00-load.t
 t/array.t
 t/basic_types.t

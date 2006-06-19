@@ -1,6 +1,6 @@
 Mac-PropertyList-SAX
 
-This file describes version 0.01 of Mac::PropertyList::SAX, which extends
+This file describes version 0.02 of Mac::PropertyList::SAX, which extends
 Mac::PropertyList, using a "real" XML parser from XML::SAX::ParserFactory to
 speed up processing of large files (small files may suffer a reduction in
 performance due to the overhead of invoking the parser).

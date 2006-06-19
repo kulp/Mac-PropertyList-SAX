@@ -65,7 +65,7 @@ Version 0.01
 
 =cut
 
-$VERSION = 0.01;
+$VERSION = 0.02;
 
 =head1 FUNCTIONS
 
@@ -83,14 +83,14 @@ sub parse_plist_file {
 
 =item parse_plist_fh
 
-See L<Mac::PropertyList/parse_plist_file>
+See L<Mac::PropertyList/parse_plist_fh>
 
 =cut
 sub parse_plist_fh { my ($fh) = @_;	parse_plist(do { local $/; <$fh> }) }
 
 =item parse_plist
 
-See L<Mac::PropertyList/parse_plist_file>
+See L<Mac::PropertyList/parse_plist>
 
 =cut
 sub parse_plist { _parse($_[0]) }
@@ -144,7 +144,6 @@ sub start_element {
 	my ($data) = @_;
 
 	if ($self->{context} == EMPTY && $data->{Name} eq $self->{ROOT}) {
-		$self->{struct} = Mac::PropertyList::array->new;
 		$self->{context} = TOP;
 	} elsif ($self->{context} == TOP) {
 		push @{ $self->{stack} }, { context	=> TOP };
@@ -172,12 +171,11 @@ sub start_element {
 		} elsif ($data->{Name} eq 'dict') {
 			$self->{struct} = Mac::PropertyList::dict->new;
 			$self->{context} = DICT;
-			$self->{key} = undef;
+			undef $self->{key};
 		}
 	} elsif ($data->{Name} ne 'key'
 			and !_in($data->{Name}, @{ $self->{simple_types} })) {
-		# If it is not a keys or a simple values (which require no action
-		# here), die
+		# If not a key or a simple value (which require no action here), die
 		croak "Received invalid start element $data";
 	}
 }
@@ -205,14 +203,16 @@ sub end_element {
 				undef $self->{key};
 			}
 		} else {
+			# Get accumulated character data
 			my $value = $self->{accum};
 			if ($data->{Name} eq 'data') {
 				$value = MIME::Base64::decode_base64($value);
 			} else {
+				# TODO: Is leading/trailing whitespace is ever significant?
 				$value = trim $value;
 			}
-			my $class = "Mac::PropertyList::$data->{Name}";
-			$value = $class->new($value);
+			# Wrap in an object
+			$value = "Mac::PropertyList::$data->{Name}"->new($value);
 			if ($self->{context} == DICT) {
 				$self->{struct}{$self->{key}} = $value;
 			} elsif ($self->{context} == ARRAY) {
@@ -228,8 +228,8 @@ sub end_element {
 sub characters { shift->{accum} .= shift->{Data} }
 
 sub _in {
-	my ($item, @list) = @_;
-	scalar grep { $_ } map { $item eq $_ } @list;
+	my $item = shift;
+	scalar grep { $_ } map { $item eq $_ } @_;
 }
 
 1;

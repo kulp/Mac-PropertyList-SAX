@@ -61,11 +61,11 @@ use vars qw($VERSION @EXPORT_OK %EXPORT_TAGS);
 	
 =head1 VERSION
 
-Version 0.01
+Version 0.04
 
 =cut
 
-$VERSION = 0.03;
+$VERSION = 0.04;
 
 =head1 FUNCTIONS
 
@@ -114,7 +114,7 @@ package Mac::PropertyList::SAX::Handler;
 
 use strict;
 use warnings;
-use enum qw(EMPTY TOP CLEAR FREE DICT ARRAY);
+use enum qw(EMPTY TOP FREE DICT ARRAY);
 
 use Carp qw(carp croak);
 use MIME::Base64;

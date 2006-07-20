@@ -20,6 +20,7 @@ t/parse.t
 t/parse_plist_fh.t
 t/plists.t
 t/pod.t
+t/pod-coverage.t
 t/scalar.t
 t/time.t
 t/write.t

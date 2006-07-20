@@ -19,3 +19,9 @@ Revision history for Mac-PropertyList-SAX
 0.04    2006-07-10T12:35
         Itty-bitty little changes, including fixing VERSION in pod, removing an
         unused state enumeration, and fixing tabs and dates in Changes.
+
+0.05    2006-07-20T12:14
+        Added pod-coverage test for higher Kwalitee; removed test on XML
+        version 0.9, which is not supported by some XML parsers (removing a
+        test doesn't seem right, but I can't guarantee that the parser I get
+        will support XML 0.9, since I'm using XML::SAX::ParserFactory).

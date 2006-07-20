@@ -1,6 +1,6 @@
 # Stolen from Mac::PropertyList (by comdog) for use in Mac::PropertyList::SAX (by kulp)
 
-use Test::More tests => 27;
+use Test::More tests => 24;
 
 use Mac::PropertyList::SAX;
 
@@ -28,14 +28,6 @@ HERE
 
 my $string1_0 =<<"HERE";
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<string>This is it</string>
-</plist>
-HERE
-
-my $string0_9 =<<"HERE";
-<?xml version="0.9" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <string>This is it</string>
@@ -88,7 +80,7 @@ is( $hash->{Mimi}->value, 'Roscoe', 'Mimi string has right value'      );
 }
 
 ########################################################################
-foreach my $string ( ( $string0_9, $string1_0 ) )
+foreach my $string ( ( $string1_0 ) )
 	{
 	my $plist = Mac::PropertyList::SAX::parse_plist( $string );
 

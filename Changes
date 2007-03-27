@@ -25,3 +25,7 @@ Revision history for Mac-PropertyList-SAX
         version 0.9, which is not supported by some XML parsers (removing a
         test doesn't seem right, but I can't guarantee that the parser I get
         will support XML 0.9, since I'm using XML::SAX::ParserFactory).
+
+0.06    2007-03-26T22:00
+        Updated META.yml to 1.2 spec; fixed version discrepancy between pm and
+        META.yml; added license 'perl' to META.yml.

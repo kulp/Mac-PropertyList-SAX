@@ -1,10 +1,11 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         Mac-PropertyList-SAX
-version:      0.05
-version_from: lib/Mac/PropertyList/SAX.pm
-installdirs:  site
-requires:
+--- #YAML:1.0
+name:                Mac-PropertyList-SAX
+version:             0.06
+abstract:            work with Mac plists at a low level (with real XML
+license:             ~
+generated_by:        ExtUtils::MakeMaker version 6.31
+distribution_type:   module
+requires:     
     Carp:                          0
     enum:                          0
     Exporter:                      0
@@ -14,6 +15,8 @@ requires:
     Text::Trim:                    0
     XML::SAX::Base:                0
     XML::SAX::ParserFactory:       0
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.30_01
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
+author:
+    - Darren M. Kulp <darren@kulp.ch>

@@ -61,11 +61,11 @@ use vars qw($VERSION @EXPORT_OK %EXPORT_TAGS);
 	
 =head1 VERSION
 
-Version 0.05
+Version 0.06
 
 =cut
 
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 =head1 FUNCTIONS
 

@@ -29,3 +29,8 @@ Revision history for Mac-PropertyList-SAX
 0.06    2007-03-26T22:00
         Updated META.yml to 1.2 spec; fixed version discrepancy between pm and
         META.yml; added license 'perl' to META.yml.
+
+0.07    2007-03-22T22:49
+        Implement create_from_hash and create_from_array (generically as
+        create_from_ref) recursively, providing functionality that
+        Mac::PropertyList did not have.

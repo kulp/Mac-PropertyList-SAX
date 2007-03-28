@@ -39,8 +39,6 @@ use warnings;
 # Passthrough functions
 use Mac::PropertyList qw(
 	plist_as_string 
-	create_from_hash
-	create_from_array
 );
 use XML::SAX::ParserFactory;
 
@@ -51,6 +49,7 @@ use vars qw($VERSION @EXPORT_OK %EXPORT_TAGS);
 	parse_plist_fh
 	parse_plist_file
 	plist_as_string
+	create_from_ref
 	create_from_hash
 	create_from_array
 );
@@ -61,11 +60,11 @@ use vars qw($VERSION @EXPORT_OK %EXPORT_TAGS);
 	
 =head1 VERSION
 
-Version 0.06
+Version 0.07
 
 =cut
 
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 =head1 FUNCTIONS
 
@@ -108,7 +107,74 @@ sub _parse {
 	$handler->{struct};
 }
 
-1;
+=item create_from_ref( HASH_REF | ARRAY_REF )
+
+Create a plist dictionary from an array or hash reference.
+
+The values of the hash can be simple scalars or references. References are
+handled recursively. Reference trees containing Mac::PropertyList objects
+will be handled correctly (use case: easily combining parsed plists with
+"regular" Perl data). All scalars are treated as strings (use Mac::PropertyList
+objects to represent integers or other types of scalars).
+
+Returns a string representing the hash in the plist format.
+
+=cut
+
+sub create_from_ref {
+	$Mac::PropertyList::XML_head .
+		(join "\n", _handle_value(shift)) . "\n" .
+		$Mac::PropertyList::XML_foot;
+
+	sub _handle_value {
+		my ($val) = @_;
+
+		# We could hand off serialization of all Mac::PropertyList::Item objects
+		# but there is no 'write' method defined for it (though all its
+		# subclasses have one). Let's just handle Scalars, which are safe.
+		   if (UNIVERSAL::isa($val, 'Mac::PropertyList::Scalar')) { $val->write }
+		elsif (UNIVERSAL::isa($val,                      'HASH')) {  _hash_recurse($val) }
+		elsif (UNIVERSAL::isa($val,                     'ARRAY')) { _array_recurse($val) }
+		else { Mac::PropertyList::string->new($val)->write }
+	}
+
+	sub _hash_recurse {
+		my ($hash) = @_;
+		Mac::PropertyList::dict->write_open,
+			(map { "\t$_" } map {
+				Mac::PropertyList::dict->write_key($_),
+				_handle_value($hash->{$_}) } keys %$hash),
+			Mac::PropertyList::dict->write_close
+	}
+
+	sub _array_recurse {
+		my ($array) = @_;
+		Mac::PropertyList::array->write_open,
+			(map { "\t$_" } map { _handle_value($_) } @$array),
+			Mac::PropertyList::array->write_close
+	}
+}
+
+=item create_from_hash( HASH_REF )
+
+Provided for backward compatibility with Mac::PropertyList: merely an alias to
+create_from_ref.
+
+=cut
+
+sub create_from_hash  { &create_from_ref(@_) }
+
+=item create_from_array( ARRAY_REF )
+
+Provided for backward compatibility with Mac::PropertyList: merely an alias to
+create_from_ref.
+
+=cut
+
+sub create_from_array { &create_from_ref(@_) }
+
+package Mac::PropertyList::Scalar;
+use overload '""' => sub { shift->as_basic_data };
 
 package Mac::PropertyList::SAX::Handler;
 
@@ -298,7 +364,7 @@ L<Mac::PropertyList>, the inspiration for this module.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2006 by Darren Kulp
+Copyright (C) 2007 by Darren Kulp
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.4 or,

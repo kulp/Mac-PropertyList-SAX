@@ -37,3 +37,8 @@ Revision history for Mac-PropertyList-SAX
 
 0.08    2007-03-27T23:00
         Fix incorrect Changes date; include missing test for create_from_ref.
+
+0.09    2007-03-27T23:40
+        I don't really like releasing *this* much ... removed forgotten and
+        unnecessary stringification overload of Mac::PropertyList::Scalar that
+        caused PAUSE-indexer errors.

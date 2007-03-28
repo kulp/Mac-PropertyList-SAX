@@ -36,10 +36,8 @@ information on how to set which parser is used.
 use strict;
 use warnings;
 
-# Passthrough functions
-use Mac::PropertyList qw(
-	plist_as_string 
-);
+# Passthrough function
+use Mac::PropertyList qw(plist_as_string);
 use XML::SAX::ParserFactory;
 
 use base qw(Exporter);
@@ -60,11 +58,11 @@ use vars qw($VERSION @EXPORT_OK %EXPORT_TAGS);
 	
 =head1 VERSION
 
-Version 0.08
+Version 0.09
 
 =cut
 
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 =head1 FUNCTIONS
 
@@ -172,9 +170,6 @@ create_from_ref.
 =cut
 
 sub create_from_array { &create_from_ref(@_) }
-
-package Mac::PropertyList::Scalar;
-use overload '""' => sub { shift->as_basic_data };
 
 package Mac::PropertyList::SAX::Handler;
 

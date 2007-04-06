@@ -1,7 +1,6 @@
 =head1 NAME
 
-Mac::PropertyList::SAX - work with Mac plists at a low level (with real XML
-parsers)
+Mac::PropertyList::SAX - work with Mac plists at a low level, fast
 
 =cut
 
@@ -14,14 +13,15 @@ See L<Mac::PropertyList>
 =head1 DESCRIPTION
 
 L<Mac::PropertyList> is useful, but very slow on large files because it does
-the parsing by itself, intead of handing off the actual XML parsing to a
-dedicated parser. This module uses L<XML::SAX::ParserFactory> to select a
-parser capable of doing the heavy lifting, reducing parsing time on large files
-by up to 97%. This is especially useful for iTunes library plists which may be
-megabytes in size and contain thousands of entries in dozens of dictionaries.
+XML parsing itself, intead of handing it off to a dedicated parser. This module
+uses L<XML::SAX::ParserFactory> to select a parser capable of doing the heavy
+lifting, reducing parsing time on large files by a factor of 30 or more.
 
 This module does not, however, replace Mac::PropertyList; in fact, it depends
-on it for several package definitions and the plist creation routines.
+on it for several package definitions and the plist creation routines. You
+should, however, be able to replace all "use Mac::PropertyList" lines with "use
+Mac::PropertyList::SAX", making no other changes, and notice an immediate
+improvement in performance on large input files.
 
 Be aware that performance will depend largely on the parser that
 L<XML::SAX::ParserFactory> selects for you; if you have not installed
@@ -38,31 +38,41 @@ use warnings;
 
 # Passthrough function
 use Mac::PropertyList qw(plist_as_string);
+use UNIVERSAL::isa qw(isa);
 use XML::SAX::ParserFactory;
 
 use base qw(Exporter);
 use vars qw($VERSION @EXPORT_OK %EXPORT_TAGS);
 @EXPORT_OK = qw(
-	parse_plist 
-	parse_plist_fh
-	parse_plist_file
-	plist_as_string
-	create_from_ref
-	create_from_hash
-	create_from_array
+    parse_plist 
+    parse_plist_fh
+    parse_plist_file
+    plist_as_string
+    create_from_ref
+    create_from_hash
+    create_from_array
 );
 
 %EXPORT_TAGS = (
-	'all' => \@EXPORT_OK,
+    all    => \@EXPORT_OK,
+    create => [ qw(create_from_ref create_from_hash create_from_array plist_as_string) ],
+    parse  => [ qw(parse_plist parse_plist_fh parse_plist_file) ],
 );
-	
+    
 =head1 VERSION
 
-Version 0.09
+Version 0.50
 
 =cut
 
-$VERSION = '0.09';
+$VERSION = '0.50';
+
+=head1 EXPORTS
+
+By default, no functions are exported. Specify individual functions to export
+as usual, or use the tags ':all', ':create', and ':parse' for the appropriate
+sets of functions (':create' includes the create* functions as well as
+plist_as_string; ':parse' includes the parse* functions).
 
 =head1 FUNCTIONS
 
@@ -73,9 +83,18 @@ $VERSION = '0.09';
 See L<Mac::PropertyList/parse_plist_file>
 
 =cut
+
 sub parse_plist_file {
-	open my($fh), $_[0];
-	parse_plist_fh($fh);
+    my $file = shift;
+
+    return parse_plist_fh($file) if ref $file;
+    
+    unless(-e $file) {
+        carp("parse_plist_file: file [$file] does not exist!");
+        return;
+    }
+        
+    parse_plist_fh(do { local $/; open my($fh), $file; $fh });
 }
 
 =item parse_plist_fh
@@ -83,26 +102,30 @@ sub parse_plist_file {
 See L<Mac::PropertyList/parse_plist_fh>
 
 =cut
-sub parse_plist_fh { my ($fh) = @_;	parse_plist(do { local $/; <$fh> }) }
+
+sub parse_plist_fh { my $fh = shift; parse_plist(do { local $/; <$fh> }) }
 
 =item parse_plist
 
 See L<Mac::PropertyList/parse_plist>
 
 =cut
-sub parse_plist { _parse($_[0]) }
+
+sub parse_plist { _parse(@_) }
 
 =item _parse
 
 Parsing method called by parse_plist_* (internal use only)
 
 =cut
+
 sub _parse {
-	my ($data) = @_;
-	my $handler = Mac::PropertyList::SAX::Handler->new;
-	my $parser = XML::SAX::ParserFactory->parser(Handler => $handler);
-	$parser->parse_string($data);
-	$handler->{struct};
+    my ($data) = @_;
+
+    my $handler = Mac::PropertyList::SAX::Handler->new;
+    XML::SAX::ParserFactory->parser(Handler => $handler)->parse_string($data);
+
+    $handler->{struct}
 }
 
 =item create_from_ref( HASH_REF | ARRAY_REF )
@@ -120,56 +143,57 @@ Returns a string representing the hash in the plist format.
 =cut
 
 sub create_from_ref {
-	$Mac::PropertyList::XML_head .
-		(join "\n", _handle_value(shift)) . "\n" .
-		$Mac::PropertyList::XML_foot;
+    # use "real" local subs to protect internals
+    local *_handle_value = sub {
+        my ($val) = @_;
 
-	sub _handle_value {
-		my ($val) = @_;
+        local *_handle_hash = sub {
+            my ($hash) = @_;
+            Mac::PropertyList::dict->write_open,
+                (map { "\t$_" } map {
+                    Mac::PropertyList::dict->write_key($_),
+                    _handle_value($hash->{$_}) } keys %$hash),
+                Mac::PropertyList::dict->write_close
+        };
 
-		# We could hand off serialization of all Mac::PropertyList::Item objects
-		# but there is no 'write' method defined for it (though all its
-		# subclasses have one). Let's just handle Scalars, which are safe.
-		   if (UNIVERSAL::isa($val, 'Mac::PropertyList::Scalar')) { $val->write }
-		elsif (UNIVERSAL::isa($val,                      'HASH')) {  _hash_recurse($val) }
-		elsif (UNIVERSAL::isa($val,                     'ARRAY')) { _array_recurse($val) }
-		else { Mac::PropertyList::string->new($val)->write }
-	}
+        local *_handle_array = sub {
+            my ($array) = @_;
+            Mac::PropertyList::array->write_open,
+                (map { "\t$_" } map { _handle_value($_) } @$array),
+                Mac::PropertyList::array->write_close
+        };
 
-	sub _hash_recurse {
-		my ($hash) = @_;
-		Mac::PropertyList::dict->write_open,
-			(map { "\t$_" } map {
-				Mac::PropertyList::dict->write_key($_),
-				_handle_value($hash->{$_}) } keys %$hash),
-			Mac::PropertyList::dict->write_close
-	}
+        # We could hand off serialization of all Mac::PropertyList::Item objects
+        # but there is no 'write' method defined for it (though all its
+        # subclasses have one). Let's just handle Scalars, which are safe.
+           if (isa $val, 'Mac::PropertyList::Scalar') { $val->write }
+        elsif (isa $val,                      'HASH') { _handle_hash ($val) }
+        elsif (isa $val,                     'ARRAY') { _handle_array($val) }
+        else { Mac::PropertyList::string->new($val)->write }
+    };
 
-	sub _array_recurse {
-		my ($array) = @_;
-		Mac::PropertyList::array->write_open,
-			(map { "\t$_" } map { _handle_value($_) } @$array),
-			Mac::PropertyList::array->write_close
-	}
+    $Mac::PropertyList::XML_head .
+        (join "\n", _handle_value(shift)) . "\n" .
+        $Mac::PropertyList::XML_foot;
 }
 
 =item create_from_hash( HASH_REF )
 
-Provided for backward compatibility with Mac::PropertyList: merely an alias to
+Provided for backward compatibility with Mac::PropertyList: aliases
 create_from_ref.
 
 =cut
 
-sub create_from_hash  { &create_from_ref(@_) }
+*create_from_hash = \&create_from_ref;
 
 =item create_from_array( ARRAY_REF )
 
-Provided for backward compatibility with Mac::PropertyList: merely an alias to
+Provided for backward compatibility with Mac::PropertyList: aliases
 create_from_ref.
 
 =cut
 
-sub create_from_array { &create_from_ref(@_) }
+*create_from_array = \&create_from_ref;
 
 package Mac::PropertyList::SAX::Handler;
 
@@ -178,120 +202,126 @@ use warnings;
 use enum qw(EMPTY TOP FREE DICT ARRAY);
 
 use Carp qw(carp croak);
+use Alias qw(attr); $Alias::AttrPrefix = 'main::';
 use MIME::Base64;
 use Text::Trim;
+
+use constant { KEY  => 'key',
+               DATA => 'data' };
 
 use base qw(XML::SAX::Base);
 
 sub new {
-	my %args = (
-		ROOT			=> 'plist',
-		accum			=> "",
-		context			=> EMPTY,
-		key				=> undef,
-		stack			=> [ ],
-		struct			=> undef,
-		# From the plist DTD
-		complex_types	=> [ qw(array dict) ],
-		numerical_types	=> [ qw(real integer true false) ],
-		simple_types	=> [ qw(data date real integer string true false) ],
-		types			=> [ qw(array data date dict real integer string true false) ],
-	);
-	shift->SUPER::new(%args, @_);
+    # From the plist DTD
+    my @complex_types   = qw(array dict);
+    my @numerical_types = qw(real integer true false);
+    my @simple_types    = qw(data date real integer string true false);
+    my @types           = (@complex_types, @numerical_types, @simple_types);
+
+    sub atoh { map { $_ => 1 } @_ }
+
+    my %args = (
+        root            => 'plist',
+
+        accum           => "",
+        context         => EMPTY,
+        key             => undef,
+        stack           => [ ],
+        struct          => undef,
+
+        complex_types   => { atoh @complex_types   },
+        numerical_types => { atoh @numerical_types },
+        simple_types    => { atoh @simple_types    },
+        types           => { atoh @types           },
+    );
+    shift->SUPER::new(%args, @_);
 }
 
 sub start_element {
-	my $self = shift;
-	my ($data) = @_;
+    my $self = attr shift;
+    my ($data) = @_;
+    my $name = $data->{Name};
 
-	if ($self->{context} == EMPTY && $data->{Name} eq $self->{ROOT}) {
-		$self->{context} = TOP;
-	} elsif ($self->{context} == TOP) {
-		push @{ $self->{stack} }, { context	=> TOP };
+    if ($::context == EMPTY and $name eq $::root) {
+        $::context = TOP;
+    } elsif ($::context == TOP) {
+        push @::stack, { context => TOP };
 
-		if (!_in($data->{Name}, @{ $self->{types} })) {
-			croak "Top-level element in plist is not a recognized type";
-		} elsif ($data->{Name} eq 'dict') {
-			$self->{struct} = Mac::PropertyList::dict->new;
-			$self->{context} = DICT;
-		} elsif ($data->{Name} eq 'array') {
-			$self->{struct} = Mac::PropertyList::array->new;
-			$self->{context} = ARRAY;
-		} else {
-			$self->{context} = FREE;
-		}
-	} elsif (_in($data->{Name}, @{ $self->{complex_types} })) {
-		push @{ $self->{stack} }, {
-			key		=> $self->{key},
-			context	=> $self->{context},
-			struct	=> $self->{struct},
-		};
-		if ($data->{Name} eq 'array') {
-			$self->{struct} = Mac::PropertyList::array->new;
-			$self->{context} = ARRAY;
-		} elsif ($data->{Name} eq 'dict') {
-			$self->{struct} = Mac::PropertyList::dict->new;
-			$self->{context} = DICT;
-			undef $self->{key};
-		}
-	} elsif ($data->{Name} ne 'key'
-			and !_in($data->{Name}, @{ $self->{simple_types} })) {
-		# If not a key or a simple value (which require no action here), die
-		croak "Received invalid start element $data";
-	}
+        if (!$::types{$name}) {
+            croak "Top-level element in plist is not a recognized type";
+        } elsif ($name eq 'dict') {
+            $::struct = Mac::PropertyList::dict->new;
+            $::context = DICT;
+        } elsif ($name eq 'array') {
+            $::struct = Mac::PropertyList::array->new;
+            $::context = ARRAY;
+        } else {
+            $::context = FREE;
+        }
+    } elsif ($::complex_types{$name}) {
+        push @::stack, {
+            key     => $::key,
+            context => $::context,
+            struct  => $::struct,
+        };
+        if ($name eq 'array') {
+            $::struct = Mac::PropertyList::array->new;
+            $::context = ARRAY;
+        } elsif ($name eq 'dict') {
+            $::struct = Mac::PropertyList::dict->new;
+            $::context = DICT;
+            undef $::key;
+        }
+    } elsif ($name ne KEY and !$::simple_types{$name}) {
+        # If not a key or a simple value (which require no action here), die
+        croak "Received invalid start element $name";
+    }
 }
 
 sub end_element {
-	my $self = shift;
-	my ($data) = @_;
+    my $self = attr shift;
+    my ($data) = @_;
+    my $name = $data->{Name};
 
-	if ($data->{Name} eq $self->{ROOT}) {
-		# Discard plist element
-	} elsif ($data->{Name} eq 'key') {
-		$self->{key} = trim $self->{accum};
-		$self->{accum} = "";
-	} else {
-		if (_in($data->{Name}, @{ $self->{complex_types} })) {
-			my $elt = pop @{ $self->{stack} };
-			if ($elt->{context} != TOP) {
-				my $oldstruct = $self->{struct};
-				($self->{struct}, $self->{key}, $self->{context}) = @{$elt}{qw(struct key context)};
-				if ($self->{context} == DICT) {
-					$self->{struct}->{$self->{key}} = $oldstruct;
-				} elsif ($self->{context} == ARRAY) {
-					push @{ $self->{struct} }, $oldstruct;
-				}
-				undef $self->{key};
-			}
-		} else {
-			# Get accumulated character data
-			my $value = $self->{accum};
-			if ($data->{Name} eq 'data') {
-				$value = MIME::Base64::decode_base64($value);
-			} else {
-				# TODO: Is leading/trailing whitespace is ever significant?
-				$value = trim $value;
-			}
-			# Wrap in an object
-			$value = "Mac::PropertyList::$data->{Name}"->new($value);
-			if ($self->{context} == DICT) {
-				$self->{struct}{$self->{key}} = $value;
-			} elsif ($self->{context} == ARRAY) {
-				push @{ $self->{struct} }, $value;
-			} elsif ($self->{context} == FREE) {
-				$self->{struct} = $value;
-			}
-		}
-		$self->{accum} = "";
-	}
+    if ($name eq $::root) {
+        # Discard plist element
+    } elsif ($name eq KEY) {
+        $::key = trim $::accum;
+        $::accum = "";
+    } else {
+
+        sub update_struct {
+            my ($context, $structref, $key, $value) = @_;
+
+               if ($context ==  DICT) {       $$structref->{$key} = $value }
+            elsif ($context == ARRAY) { push @$$structref,          $value }
+            elsif ($context ==  FREE) {       $$structref         = $value }
+        }
+
+        if ($::complex_types{$name}) {
+            my $elt = pop @::stack;
+            if ($elt->{context} != TOP) {
+                my $oldstruct = $::struct;
+                ($::struct, $::key, $::context) = @{$elt}{qw(struct key context)};
+
+                update_struct($::context, \$::struct, $::key, $oldstruct);
+
+                undef $::key;
+            }
+        } else {
+            # Wrap accumulated character data in an object
+            my $value = "Mac::PropertyList::$name"->new(
+                $name eq DATA ? MIME::Base64::decode_base64($::accum)
+                              : trim $::accum);
+
+            update_struct($::context, \$::struct, $::key, $value);
+        }
+
+        $::accum = "";
+    }
 }
 
 sub characters { shift->{accum} .= shift->{Data} }
-
-sub _in {
-	my $item = shift;
-	scalar grep { $_ } map { $item eq $_ } @_;
-}
 
 1;
 
@@ -299,7 +329,7 @@ __END__
 
 =back
 
-=head1 BUGS / TODO
+=head1 BUGS / CAVEATS / TODO
 
 Behavior is not I<exactly> the same as L<Mac::PropertyList>'s; specifically, in
 the case of special characters, such as accented characters and ampersands.
@@ -310,6 +340,12 @@ by the XML parser in this module, but are preserved in their original encoding
 by L<Mac::PropertyList>. The differences may be evident when creating a plist
 file from a parsed data structure, but this has not yet been tested.
 
+The behavior of create_from_hash and create_from_array has changed: these
+functions (which are really just aliases to the new create_from_ref function)
+are now capable of recursively serializing complex data structures. For inputs
+that Mac::PropertyList's create_from_* functions handlsd, the output should be
+the same, but the addition of functionality means that the reverse is not true.
+
 Please report any bugs or feature requests to C<bug-mac-propertylist-sax at
 rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Mac-PropertyList-SAX>.  I will
@@ -318,35 +354,11 @@ as I make changes.
 
 =head1 SUPPORT
 
-You can find documentation for this module with the perldoc command.
-
-    perldoc Mac::PropertyList::SAX
-
-You can also look for information at:
-
-=over 4
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/Mac-PropertyList-SAX>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Mac-PropertyList-SAX>
-
-=item * RT: CPAN's request tracker
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Mac-PropertyList-SAX>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Mac-PropertyList-SAX>
-
-=back
+Please contact the L<AUTHOR> with bug reports or feature requests.
 
 =head1 AUTHOR
 
-Darren M. Kulp, C<< <darren at kulp.ch> >>
+Darren M. Kulp, C<< <kulp @ cpan.org> >>
 
 =head1 THANKS
 
@@ -367,3 +379,4 @@ at your option, any later version of Perl 5 you may have available.
 
 =cut
 
+# vi: set et ts=4 sw=4: #

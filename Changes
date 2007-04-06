@@ -42,3 +42,10 @@ Revision history for Mac-PropertyList-SAX
         I don't really like releasing *this* much ... removed forgotten and
         unnecessary stringification overload of Mac::PropertyList::Scalar that
         caused PAUSE-indexer errors.
+
+0.50    2007-04-06T18:46
+        Fixed various small bugs, improved quality of plist-generation code,
+        reduced code duplication, updated tests, reformatted code, matched
+        Mac::PropertyList behavior better, updated exports, clarified POD, and
+        marked as 0.50 (signifiying a beta considered stable, nearly ready for
+        production).

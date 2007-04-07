@@ -61,11 +61,11 @@ use vars qw($VERSION @EXPORT_OK %EXPORT_TAGS);
     
 =head1 VERSION
 
-Version 0.50
+Version 0.60
 
 =cut
 
-$VERSION = '0.50';
+$VERSION = '0.60';
 
 =head1 EXPORTS
 
@@ -199,40 +199,45 @@ package Mac::PropertyList::SAX::Handler;
 
 use strict;
 use warnings;
-use enum qw(EMPTY TOP FREE DICT ARRAY);
+use enum qw(S_EMPTY S_TOP S_FREE S_DICT S_ARRAY S_KEY S_TEXT);
 
 use Carp qw(carp croak);
 use Alias qw(attr); $Alias::AttrPrefix = 'main::';
 use MIME::Base64;
-use Text::Trim;
 
-use constant { KEY  => 'key',
-               DATA => 'data' };
+use constant { KEY   => 'key',
+               DATA  => 'data',
+               DICT  => 'dict',
+               ARRAY => 'array',
+             };
 
 use base qw(XML::SAX::Base);
 
-sub new {
-    # From the plist DTD
-    my @complex_types   = qw(array dict);
+# From the plist DTD
+our (%complex_types, %numerical_types, %simple_types, %types);
+{
+    my @complex_types   = (DICT, ARRAY);
     my @numerical_types = qw(real integer true false);
     my @simple_types    = qw(data date real integer string true false);
     my @types           = (@complex_types, @numerical_types, @simple_types);
 
     sub atoh { map { $_ => 1 } @_ }
 
+    %complex_types   = atoh @complex_types;
+    %numerical_types = atoh @numerical_types;
+    %simple_types    = atoh @simple_types;
+    %types           = atoh @types;
+}
+
+sub new {
     my %args = (
         root            => 'plist',
 
         accum           => "",
-        context         => EMPTY,
+        context         => S_EMPTY,
         key             => undef,
         stack           => [ ],
         struct          => undef,
-
-        complex_types   => { atoh @complex_types   },
-        numerical_types => { atoh @numerical_types },
-        simple_types    => { atoh @simple_types    },
-        types           => { atoh @types           },
     );
     shift->SUPER::new(%args, @_);
 }
@@ -242,38 +247,32 @@ sub start_element {
     my ($data) = @_;
     my $name = $data->{Name};
 
-    if ($::context == EMPTY and $name eq $::root) {
-        $::context = TOP;
-    } elsif ($::context == TOP) {
-        push @::stack, { context => TOP };
-
-        if (!$::types{$name}) {
-            croak "Top-level element in plist is not a recognized type";
-        } elsif ($name eq 'dict') {
+    local *_change_state = sub {
+        if ($name eq DICT) {
             $::struct = Mac::PropertyList::dict->new;
-            $::context = DICT;
-        } elsif ($name eq 'array') {
+            $::context = S_DICT;
+            undef $::key;
+        } elsif ($name eq ARRAY) {
             $::struct = Mac::PropertyList::array->new;
-            $::context = ARRAY;
-        } else {
-            $::context = FREE;
+            $::context = S_ARRAY;
         }
-    } elsif ($::complex_types{$name}) {
+        elsif ($simple_types{$name}      ) { $::context = S_TEXT }
+        elsif (              $name eq KEY) { $::context = S_KEY  }
+        elsif (       $types{$name}      ) { $::context = S_FREE }
+        else { croak "Top-level element in plist is not a recognized type" }
+    };
+
+         if ($::context == S_EMPTY and $name eq $::root) {
+             $::context  = S_TOP;
+    } elsif ($::context == S_TOP or $types{$name} or $name eq KEY) {
         push @::stack, {
             key     => $::key,
             context => $::context,
             struct  => $::struct,
         };
-        if ($name eq 'array') {
-            $::struct = Mac::PropertyList::array->new;
-            $::context = ARRAY;
-        } elsif ($name eq 'dict') {
-            $::struct = Mac::PropertyList::dict->new;
-            $::context = DICT;
-            undef $::key;
-        }
-    } elsif ($name ne KEY and !$::simple_types{$name}) {
-        # If not a key or a simple value (which require no action here), die
+
+        &_change_state;
+    } else {
         croak "Received invalid start element $name";
     }
 }
@@ -283,45 +282,46 @@ sub end_element {
     my ($data) = @_;
     my $name = $data->{Name};
 
-    if ($name eq $::root) {
-        # Discard plist element
-    } elsif ($name eq KEY) {
-        $::key = trim $::accum;
-        $::accum = "";
-    } else {
+    # Discard plist element
+    if ($name ne $::root) {
+        my $elt = pop @::stack;
 
-        sub update_struct {
-            my ($context, $structref, $key, $value) = @_;
+        local *_update_struct = sub {
+            my ($context, $key, $value) = @_;
 
-               if ($context ==  DICT) {       $$structref->{$key} = $value }
-            elsif ($context == ARRAY) { push @$$structref,          $value }
-            elsif ($context ==  FREE) {       $$structref         = $value }
-        }
+               if ($context ==  S_DICT) {       $::struct->{$key} = $value }
+            elsif ($context == S_ARRAY) { push @$::struct,          $value }
+            elsif ($context ==  S_TEXT) {       $::struct         = $value }
+            elsif ($context ==  S_FREE) {       $::struct         = $value }
+            elsif ($context ==   S_TOP) {       $::struct         = $value }
+        };
 
-        if ($::complex_types{$name}) {
-            my $elt = pop @::stack;
-            if ($elt->{context} != TOP) {
-                my $oldstruct = $::struct;
-                ($::struct, $::key, $::context) = @{$elt}{qw(struct key context)};
+        if ($::context != S_EMPTY) {
+            my $value = $::struct;
+            ($::struct, $::key, $::context) = @{$elt}{qw(struct key context)};
 
-                update_struct($::context, \$::struct, $::key, $oldstruct);
+            if ($simple_types{$name}) {
+                # Wrap accumulated character data in an object
+                $value = "Mac::PropertyList::$name"->new(
+                    $name eq DATA ? MIME::Base64::decode_base64($::accum)
+                                  : $::accum);
 
-                undef $::key;
+                undef $::accum;
+            } elsif ($name eq KEY) {
+                $::key = $::accum;
+                undef $::accum;
             }
-        } else {
-            # Wrap accumulated character data in an object
-            my $value = "Mac::PropertyList::$name"->new(
-                $name eq DATA ? MIME::Base64::decode_base64($::accum)
-                              : trim $::accum);
 
-            update_struct($::context, \$::struct, $::key, $value);
+            _update_struct($::context, $::key, $value);
         }
-
-        $::accum = "";
     }
 }
 
-sub characters { shift->{accum} .= shift->{Data} }
+sub characters {
+    my $self = attr shift;
+    my ($data) = @_;
+    $::accum .= $data->{Data} if $::context == S_TEXT or $::context == S_KEY;
+}
 
 1;
 
@@ -340,21 +340,22 @@ by the XML parser in this module, but are preserved in their original encoding
 by L<Mac::PropertyList>. The differences may be evident when creating a plist
 file from a parsed data structure, but this has not yet been tested.
 
+In addition, unlike Mac::PropertyList and old versions (< 0.60) of
+Mac::PropertyList::SAX, this module does not trim leading and trailing
+whitespace parsed from plist inputs. The difference in behavior is noticeable
+only in extremely rare cases, but I believe this module's current behavior is
+the more correct. If someone could point me to documentation (probably on the
+plist format specifically) that covers this problem, I would be grateful.
+
 The behavior of create_from_hash and create_from_array has changed: these
 functions (which are really just aliases to the new create_from_ref function)
 are now capable of recursively serializing complex data structures. For inputs
 that Mac::PropertyList's create_from_* functions handlsd, the output should be
 the same, but the addition of functionality means that the reverse is not true.
 
-Please report any bugs or feature requests to C<bug-mac-propertylist-sax at
-rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Mac-PropertyList-SAX>.  I will
-be notified, and then you'll automatically be notified of progress on your bug
-as I make changes.
-
 =head1 SUPPORT
 
-Please contact the L<AUTHOR> with bug reports or feature requests.
+Please contact the author with bug reports or feature requests.
 
 =head1 AUTHOR
 

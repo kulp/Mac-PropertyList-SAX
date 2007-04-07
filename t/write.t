@@ -10,7 +10,7 @@ my $array =<<"HERE";
 <plist version="1.0">
 <array>
 	<string>Mimi</string>
-	<string>Roscoe</string>
+	<string> Roscoe</string>
 </array>
 </plist>
 HERE
@@ -21,7 +21,7 @@ my $dict =<<"HERE";
 <plist version="1.0">
 <dict>
 	<key>Mimi</key>
-	<string>Roscoe</string>
+	<string>Roscoe </string>
 </dict>
 </plist>
 HERE

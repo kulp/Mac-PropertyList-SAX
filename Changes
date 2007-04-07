@@ -49,3 +49,13 @@ Revision history for Mac-PropertyList-SAX
         Mac::PropertyList behavior better, updated exports, clarified POD, and
         marked as 0.50 (signifiying a beta considered stable, nearly ready for
         production).
+
+0.60    2007-04-06T22:18
+        Changed behavior with respect to Mac::PropertyList -- leading and
+        trailing whitespace in values is no longer stripped. Updated t/write.t
+        to test this as a side-effect of successive deserialization and
+        reserialization. This behavior may need to be revisited, since certain
+        datatypes like "integer" may benefit from whitespace modifications. As
+        a result of these modifications, this module no longer depends on
+        Text::Trim. See CAVEATS in the POD for more details.
+

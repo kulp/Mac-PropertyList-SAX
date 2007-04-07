@@ -59,3 +59,10 @@ Revision history for Mac-PropertyList-SAX
         a result of these modifications, this module no longer depends on
         Text::Trim. See CAVEATS in the POD for more details.
 
+0.61    2007-04-07T12:55
+        Finally fixed the lack of LICENSE; updated old code like 'use vars' to
+        use newer Perl idioms; inlined functions that due to recent refactoring
+		were being called only once; reformatted code. Fixed dependency lists,
+		which were incorrect because I was modifying META.yml (generated)
+		instead of Makefile.PL. No behavioral changes.
+

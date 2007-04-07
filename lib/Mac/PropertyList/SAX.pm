@@ -42,8 +42,8 @@ use UNIVERSAL::isa qw(isa);
 use XML::SAX::ParserFactory;
 
 use base qw(Exporter);
-use vars qw($VERSION @EXPORT_OK %EXPORT_TAGS);
-@EXPORT_OK = qw(
+
+our @EXPORT_OK = qw(
     parse_plist 
     parse_plist_fh
     parse_plist_file
@@ -53,7 +53,7 @@ use vars qw($VERSION @EXPORT_OK %EXPORT_TAGS);
     create_from_array
 );
 
-%EXPORT_TAGS = (
+our %EXPORT_TAGS = (
     all    => \@EXPORT_OK,
     create => [ qw(create_from_ref create_from_hash create_from_array plist_as_string) ],
     parse  => [ qw(parse_plist parse_plist_fh parse_plist_file) ],
@@ -61,11 +61,11 @@ use vars qw($VERSION @EXPORT_OK %EXPORT_TAGS);
     
 =head1 VERSION
 
-Version 0.60
+Version 0.61
 
 =cut
 
-$VERSION = '0.60';
+our $VERSION = '0.61';
 
 =head1 EXPORTS
 
@@ -199,47 +199,49 @@ package Mac::PropertyList::SAX::Handler;
 
 use strict;
 use warnings;
+# State definitions
 use enum qw(S_EMPTY S_TOP S_FREE S_DICT S_ARRAY S_KEY S_TEXT);
 
 use Carp qw(carp croak);
+# Make use strict 'vars' usable with Alias
 use Alias qw(attr); $Alias::AttrPrefix = 'main::';
 use MIME::Base64;
 
-use constant { KEY   => 'key',
-               DATA  => 'data',
-               DICT  => 'dict',
-               ARRAY => 'array',
-             };
+# Element-name definitions
+use constant +{ qw( ROOT  plist
+                    KEY   key
+                    DATA  data
+                    DICT  dict
+                    ARRAY array ) };
 
 use base qw(XML::SAX::Base);
 
 # From the plist DTD
-our (%complex_types, %numerical_types, %simple_types, %types);
+our (%types, %simple_types, %complex_types, %numerical_types);
 {
     my @complex_types   = (DICT, ARRAY);
     my @numerical_types = qw(real integer true false);
     my @simple_types    = qw(data date real integer string true false);
     my @types           = (@complex_types, @numerical_types, @simple_types);
 
-    sub atoh { map { $_ => 1 } @_ }
+    my $atoh = sub { map { $_ => 1 } @_ };
 
-    %complex_types   = atoh @complex_types;
-    %numerical_types = atoh @numerical_types;
-    %simple_types    = atoh @simple_types;
-    %types           = atoh @types;
+    %types           = $atoh->(@          types);
+    %simple_types    = $atoh->(@   simple_types);
+    %complex_types   = $atoh->(@  complex_types);
+    %numerical_types = $atoh->(@numerical_types);
 }
 
 sub new {
     my %args = (
-        root            => 'plist',
-
-        accum           => "",
-        context         => S_EMPTY,
-        key             => undef,
-        stack           => [ ],
-        struct          => undef,
+        accum   => "",
+        context => S_EMPTY,
+        key     => undef,
+        stack   => [ ],
+        struct  => undef,
     );
-    shift->SUPER::new(%args, @_);
+
+    shift->SUPER::new(%args, @_)
 }
 
 sub start_element {
@@ -247,7 +249,16 @@ sub start_element {
     my ($data) = @_;
     my $name = $data->{Name};
 
-    local *_change_state = sub {
+    # State transition definitions
+         if ($::context == S_EMPTY and $name eq ROOT) {
+             $::context  = S_TOP;
+    } elsif ($::context == S_TOP or $types{$name} or $name eq KEY) {
+        push @::stack, {
+            key     => $::key,
+            context => $::context,
+            struct  => $::struct,
+        };
+
         if ($name eq DICT) {
             $::struct = Mac::PropertyList::dict->new;
             $::context = S_DICT;
@@ -259,21 +270,9 @@ sub start_element {
         elsif ($simple_types{$name}      ) { $::context = S_TEXT }
         elsif (              $name eq KEY) { $::context = S_KEY  }
         elsif (       $types{$name}      ) { $::context = S_FREE }
-        else { croak "Top-level element in plist is not a recognized type" }
-    };
-
-         if ($::context == S_EMPTY and $name eq $::root) {
-             $::context  = S_TOP;
-    } elsif ($::context == S_TOP or $types{$name} or $name eq KEY) {
-        push @::stack, {
-            key     => $::key,
-            context => $::context,
-            struct  => $::struct,
-        };
-
-        &_change_state;
+        else { croak "Top-level element '$name' in plist is not recognized" }
     } else {
-        croak "Received invalid start element $name";
+        croak "Received invalid start element '$name'";
     }
 }
 
@@ -283,18 +282,8 @@ sub end_element {
     my $name = $data->{Name};
 
     # Discard plist element
-    if ($name ne $::root) {
+    if ($name ne ROOT) {
         my $elt = pop @::stack;
-
-        local *_update_struct = sub {
-            my ($context, $key, $value) = @_;
-
-               if ($context ==  S_DICT) {       $::struct->{$key} = $value }
-            elsif ($context == S_ARRAY) { push @$::struct,          $value }
-            elsif ($context ==  S_TEXT) {       $::struct         = $value }
-            elsif ($context ==  S_FREE) {       $::struct         = $value }
-            elsif ($context ==   S_TOP) {       $::struct         = $value }
-        };
 
         if ($::context != S_EMPTY) {
             my $value = $::struct;
@@ -312,7 +301,11 @@ sub end_element {
                 undef $::accum;
             }
 
-            _update_struct($::context, $::key, $value);
+               if ($::context == S_DICT ) {       $::struct->{$::key} = $value }
+            elsif ($::context == S_ARRAY) { push @$::struct,            $value }
+            elsif ($::context == S_TEXT
+                or $::context == S_FREE
+                or $::context == S_TOP  ) {       $::struct           = $value }
         }
     }
 }
@@ -329,7 +322,7 @@ __END__
 
 =back
 
-=head1 BUGS / CAVEATS / TODO
+=head1 BUGS / CAVEATS
 
 Behavior is not I<exactly> the same as L<Mac::PropertyList>'s; specifically, in
 the case of special characters, such as accented characters and ampersands.

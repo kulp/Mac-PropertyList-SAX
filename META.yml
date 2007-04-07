@@ -1,18 +1,20 @@
 --- #YAML:1.0
 name:                Mac-PropertyList-SAX
-version:             0.60
+version:             0.61
 abstract:            work with Mac plists at a low level, fast
-license:             ~
+license:             perl
 generated_by:        ExtUtils::MakeMaker version 6.31
 distribution_type:   module
 requires:     
+    Alias:                         0
     Carp:                          0
+    constant:                      0
     enum:                          0
     Exporter:                      0
     Mac::PropertyList:             0
     MIME::Base64:                  0
     Test::More:                    0
-    Text::Trim:                    0
+    UNIVERSAL::isa:                0
     XML::SAX::Base:                0
     XML::SAX::ParserFactory:       0
 meta-spec:

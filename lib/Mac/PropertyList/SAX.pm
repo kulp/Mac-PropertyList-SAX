@@ -18,7 +18,7 @@ uses L<XML::SAX::ParserFactory> to select a parser capable of doing the heavy
 lifting, reducing parsing time on large files by a factor of 30 or more.
 
 This module does not, however, replace Mac::PropertyList; in fact, it depends
-on it for several package definitions and the plist creation routines. You
+on it for several package definitions and the plist printing routines. You
 should, however, be able to replace all "use Mac::PropertyList" lines with "use
 Mac::PropertyList::SAX", making no other changes, and notice an immediate
 improvement in performance on large input files.
@@ -58,14 +58,14 @@ our %EXPORT_TAGS = (
     create => [ qw(create_from_ref create_from_hash create_from_array plist_as_string) ],
     parse  => [ qw(parse_plist parse_plist_fh parse_plist_file) ],
 );
-    
+
 =head1 VERSION
 
-Version 0.61
+Version 0.62
 
 =cut
 
-our $VERSION = '0.61';
+our $VERSION = '0.62';
 
 =head1 EXPORTS
 
@@ -88,12 +88,12 @@ sub parse_plist_file {
     my $file = shift;
 
     return parse_plist_fh($file) if ref $file;
-    
+
     unless(-e $file) {
         carp("parse_plist_file: file [$file] does not exist!");
         return;
     }
-        
+
     parse_plist_fh(do { local $/; open my($fh), $file; $fh });
 }
 
@@ -111,15 +111,7 @@ See L<Mac::PropertyList/parse_plist>
 
 =cut
 
-sub parse_plist { _parse(@_) }
-
-=item _parse
-
-Parsing method called by parse_plist_* (internal use only)
-
-=cut
-
-sub _parse {
+sub parse_plist {
     my ($data) = @_;
 
     my $handler = Mac::PropertyList::SAX::Handler->new;
@@ -130,13 +122,12 @@ sub _parse {
 
 =item create_from_ref( HASH_REF | ARRAY_REF )
 
-Create a plist dictionary from an array or hash reference.
+Create a plist from an array or hash reference.
 
 The values of the hash can be simple scalars or references. References are
-handled recursively. Reference trees containing Mac::PropertyList objects
-will be handled correctly (use case: easily combining parsed plists with
-"regular" Perl data). All scalars are treated as strings (use Mac::PropertyList
-objects to represent integers or other types of scalars).
+handled recursively, and Mac::PropertyList objects are output correctly.
+All plain scalars are treated as strings (use Mac::PropertyList objects to
+represent other types of scalars).
 
 Returns a string representing the hash in the plist format.
 
@@ -169,7 +160,7 @@ sub create_from_ref {
            if (isa $val, 'Mac::PropertyList::Scalar') { $val->write }
         elsif (isa $val,                      'HASH') { _handle_hash ($val) }
         elsif (isa $val,                     'ARRAY') { _handle_array($val) }
-        else { Mac::PropertyList::string->new($val)->write }
+        else { Mac::PropertyList::SAX::string->new($val)->write }
     };
 
     $Mac::PropertyList::XML_head .
@@ -260,11 +251,11 @@ sub start_element {
         };
 
         if ($name eq DICT) {
-            $::struct = Mac::PropertyList::dict->new;
+            $::struct = Mac::PropertyList::SAX::dict->new;
             $::context = S_DICT;
             undef $::key;
         } elsif ($name eq ARRAY) {
-            $::struct = Mac::PropertyList::array->new;
+            $::struct = Mac::PropertyList::SAX::array->new;
             $::context = S_ARRAY;
         }
         elsif ($simple_types{$name}      ) { $::context = S_TEXT }
@@ -281,32 +272,33 @@ sub end_element {
     my ($data) = @_;
     my $name = $data->{Name};
 
-    # Discard plist element
-    if ($name ne ROOT) {
+    if ($name eq ROOT) {
+        # Discard plist element
+    } elsif (@::stack) {
         my $elt = pop @::stack;
 
-        if ($::context != S_EMPTY) {
-            my $value = $::struct;
-            ($::struct, $::key, $::context) = @{$elt}{qw(struct key context)};
+        my $value = $::struct;
+        ($::struct, $::key, $::context) = @{$elt}{qw(struct key context)};
 
-            if ($simple_types{$name}) {
-                # Wrap accumulated character data in an object
-                $value = "Mac::PropertyList::$name"->new(
-                    $name eq DATA ? MIME::Base64::decode_base64($::accum)
-                                  : $::accum);
+        if ($simple_types{$name}) {
+            # Wrap accumulated character data in an object
+            $value = "Mac::PropertyList::$name"->new(
+                $name eq DATA ? MIME::Base64::decode_base64($::accum)
+                              : $::accum);
 
-                undef $::accum;
-            } elsif ($name eq KEY) {
-                $::key = $::accum;
-                undef $::accum;
-            }
-
-               if ($::context == S_DICT ) {       $::struct->{$::key} = $value }
-            elsif ($::context == S_ARRAY) { push @$::struct,            $value }
-            elsif ($::context == S_TEXT
-                or $::context == S_FREE
-                or $::context == S_TOP  ) {       $::struct           = $value }
+            undef $::accum;
+        } elsif ($name eq KEY) {
+            $::key = $::accum;
+            undef $::accum;
         }
+
+           if ($::context == S_DICT ) {       $::struct->{$::key} = $value }
+        elsif ($::context == S_ARRAY) { push @$::struct,            $value }
+        elsif ($::context == S_TEXT
+            or $::context == S_FREE
+            or $::context == S_TOP  ) {       $::struct           = $value }
+    } else {
+        croak "End-element received when stack already empty";
     }
 }
 
@@ -315,6 +307,34 @@ sub characters {
     my ($data) = @_;
     $::accum .= $data->{Data} if $::context == S_TEXT or $::context == S_KEY;
 }
+
+# Convenient subclasses
+package Mac::PropertyList::SAX::array;
+use base qw(Mac::PropertyList::array);
+use overload '""' => sub { $_[0]->as_basic_data };
+package Mac::PropertyList::SAX::dict;
+use base qw(Mac::PropertyList::dict);
+use overload '""' => sub { $_[0]->as_basic_data };
+package Mac::PropertyList::SAX::Scalar;
+use base qw(Mac::PropertyList::Scalar);
+use overload '""' => sub { $_[0]->as_basic_data };
+package Mac::PropertyList::SAX::date;
+use base qw(Mac::PropertyList::SAX::Scalar);
+package Mac::PropertyList::SAX::real;
+use base qw(Mac::PropertyList::SAX::Scalar);
+package Mac::PropertyList::SAX::integer;
+use base qw(Mac::PropertyList::SAX::Scalar);
+package Mac::PropertyList::SAX::string;
+use base qw(Mac::PropertyList::SAX::Scalar);
+package Mac::PropertyList::SAX::data;
+use base qw(Mac::PropertyList::SAX::Scalar);
+package Mac::PropertyList::SAX::Boolean;
+use base qw(Mac::PropertyList::Boolean);
+use overload '""' => sub { $_[0]->value };
+package Mac::PropertyList::SAX::true;
+use base qw(Mac::PropertyList::SAX::Boolean);
+package Mac::PropertyList::SAX::false;
+use base qw(Mac::PropertyList::SAX::Boolean);
 
 1;
 

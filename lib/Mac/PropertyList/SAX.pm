@@ -61,11 +61,11 @@ our %EXPORT_TAGS = (
 
 =head1 VERSION
 
-Version 0.62
+Version 0.63
 
 =cut
 
-our $VERSION = '0.62';
+our $VERSION = '0.63';
 
 =head1 EXPORTS
 
@@ -140,18 +140,18 @@ sub create_from_ref {
 
         local *_handle_hash = sub {
             my ($hash) = @_;
-            Mac::PropertyList::dict->write_open,
+            Mac::PropertyList::SAX::dict->write_open,
                 (map { "\t$_" } map {
-                    Mac::PropertyList::dict->write_key($_),
+                    Mac::PropertyList::SAX::dict->write_key($_),
                     _handle_value($hash->{$_}) } keys %$hash),
-                Mac::PropertyList::dict->write_close
+                Mac::PropertyList::SAX::dict->write_close
         };
 
         local *_handle_array = sub {
             my ($array) = @_;
-            Mac::PropertyList::array->write_open,
+            Mac::PropertyList::SAX::array->write_open,
                 (map { "\t$_" } map { _handle_value($_) } @$array),
-                Mac::PropertyList::array->write_close
+                Mac::PropertyList::SAX::array->write_close
         };
 
         # We could hand off serialization of all Mac::PropertyList::Item objects
@@ -282,7 +282,7 @@ sub end_element {
 
         if ($simple_types{$name}) {
             # Wrap accumulated character data in an object
-            $value = "Mac::PropertyList::$name"->new(
+            $value = "Mac::PropertyList::SAX::$name"->new(
                 $name eq DATA ? MIME::Base64::decode_base64($::accum)
                               : $::accum);
 
@@ -319,22 +319,22 @@ package Mac::PropertyList::SAX::Scalar;
 use base qw(Mac::PropertyList::Scalar);
 use overload '""' => sub { $_[0]->as_basic_data };
 package Mac::PropertyList::SAX::date;
-use base qw(Mac::PropertyList::SAX::Scalar);
+use base qw(Mac::PropertyList::SAX::Scalar Mac::PropertyList::date);
 package Mac::PropertyList::SAX::real;
-use base qw(Mac::PropertyList::SAX::Scalar);
+use base qw(Mac::PropertyList::SAX::Scalar Mac::PropertyList::real);
 package Mac::PropertyList::SAX::integer;
-use base qw(Mac::PropertyList::SAX::Scalar);
+use base qw(Mac::PropertyList::SAX::Scalar Mac::PropertyList::integer);
 package Mac::PropertyList::SAX::string;
-use base qw(Mac::PropertyList::SAX::Scalar);
+use base qw(Mac::PropertyList::SAX::Scalar Mac::PropertyList::string);
 package Mac::PropertyList::SAX::data;
-use base qw(Mac::PropertyList::SAX::Scalar);
+use base qw(Mac::PropertyList::SAX::Scalar Mac::PropertyList::data);
 package Mac::PropertyList::SAX::Boolean;
 use base qw(Mac::PropertyList::Boolean);
 use overload '""' => sub { $_[0]->value };
 package Mac::PropertyList::SAX::true;
-use base qw(Mac::PropertyList::SAX::Boolean);
+use base qw(Mac::PropertyList::SAX::Boolean Mac::PropertyList::true);
 package Mac::PropertyList::SAX::false;
-use base qw(Mac::PropertyList::SAX::Boolean);
+use base qw(Mac::PropertyList::SAX::Boolean Mac::PropertyList::false);
 
 1;
 

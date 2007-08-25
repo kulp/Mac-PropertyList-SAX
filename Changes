@@ -70,3 +70,8 @@ Revision history for Mac-PropertyList-SAX
         Fixed typographical errors; unified tabbing in Changes; subclassed
         Mac::PropertyList:: types to allow setting useful overloads for them.
 
+0.63    2007-08-24T22:50
+        Oops. Version 0.62 could break things that check ->isa on
+        Mac::PropertyList objects, and the new objects weren't being used
+        consistently anyway. I think I've got it now.
+

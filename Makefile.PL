@@ -1,27 +1,23 @@
-use strict;
-use warnings;
-use ExtUtils::MakeMaker;
+# Load the Module::Install bundled in ./inc/
+use inc::Module::Install;
 
-WriteMakefile(
-    NAME                => 'Mac::PropertyList::SAX',
-    AUTHOR              => 'Darren M. Kulp <darren@kulp.ch>',
-    VERSION_FROM        => 'lib/Mac/PropertyList/SAX.pm',
-    ABSTRACT_FROM       => 'lib/Mac/PropertyList/SAX.pm',
-    LICENSE             => 'perl',
-    PL_FILES            => {},
-    PREREQ_PM => {
-        'Alias'                        => 0,
-        'Carp'                         => 0,
-        'constant'                     => 0,
-        'enum'                         => 0,
-        'Exporter'                     => 0,
-        'Mac::PropertyList'            => 0,
-        'MIME::Base64'                 => 0,
-        'Test::More'                   => 0,
-        'UNIVERSAL::isa'               => 0,
-        'XML::SAX::Base'               => 0,
-        'XML::SAX::ParserFactory'      => 0,
-    },
-    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean               => { FILES => 'Mac-PropertyList-SAX-*' },
-);
+# Define metadata
+name            'Mac-PropertyList-SAX';
+all_from        'lib/Mac/PropertyList/SAX.pm';
+
+# Specific dependencies
+requires 		'Alias'                  	=> 0;
+requires 		'Carp'                   	=> 0;
+requires 		'constant'               	=> 0;
+requires 		'enum'                   	=> 0;
+requires 		'Exporter'               	=> 0;
+requires 		'Mac::PropertyList'      	=> 1.29;
+requires 		'MIME::Base64'           	=> 0;
+requires 		'UNIVERSAL::isa'         	=> 0;
+requires 		'XML::SAX::Base'         	=> 0;
+requires 		'XML::SAX::ParserFactory'	=> 0;
+build_requires  'Test::More'        		=> '0.42';
+
+auto_install;
+WriteAll;
+

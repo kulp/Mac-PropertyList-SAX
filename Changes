@@ -75,3 +75,7 @@ Revision history for Mac-PropertyList-SAX
         Mac::PropertyList objects, and the new objects weren't being used
         consistently anyway. I think I've got it now.
 
+0.64    2007-11-24T19:34
+        No functionality changes. Switched to Module::Install for installation;
+        fixed a typo; made POD more concise.
+

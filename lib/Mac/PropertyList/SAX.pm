@@ -17,19 +17,16 @@ XML parsing itself, intead of handing it off to a dedicated parser. This module
 uses L<XML::SAX::ParserFactory> to select a parser capable of doing the heavy
 lifting, reducing parsing time on large files by a factor of 30 or more.
 
-This module does not, however, replace Mac::PropertyList; in fact, it depends
-on it for several package definitions and the plist printing routines. You
-should, however, be able to replace all "use Mac::PropertyList" lines with "use
-Mac::PropertyList::SAX", making no other changes, and notice an immediate
-improvement in performance on large input files.
+This module does not replace Mac::PropertyList: it depends on it for some
+package definitions and plist printing routines. You should, however, be able
+to replace all "use Mac::PropertyList" lines with "use Mac::PropertyList::SAX"
+and notice an immediate improvement in performance on large input files.
 
-Be aware that performance will depend largely on the parser that
-L<XML::SAX::ParserFactory> selects for you; if you have not installed
-L<XML::SAX::Expat> or another fast parser, the default L<XML::SAX::PurePerl>
-parser will be used; this will probably give I<worse> performance than
-L<Mac::PropertyList>, so ensure that a fast parser is being used before you
-complain to me about performance :-). See L<XML::SAX::ParserFactory> for
-information on how to set which parser is used.
+Performance will depend largely on the parser that L<XML::SAX::ParserFactory>
+selects for you; if you have not installed L<XML::SAX::Expat> or another fast
+parser, the default L<XML::SAX::PurePerl> parser will be used, which may give
+I<worse> performance than L<Mac::PropertyList>. See L<XML::SAX::ParserFactory>
+for information on how to set which parser is used.
 
 =cut
 
@@ -61,11 +58,11 @@ our %EXPORT_TAGS = (
 
 =head1 VERSION
 
-Version 0.63
+Version 0.64
 
 =cut
 
-our $VERSION = '0.63';
+our $VERSION = '0.64';
 
 =head1 EXPORTS
 
@@ -344,27 +341,23 @@ __END__
 
 =head1 BUGS / CAVEATS
 
-Behavior is not I<exactly> the same as L<Mac::PropertyList>'s; specifically, in
-the case of special characters, such as accented characters and ampersands.
 Ampersands encoded (for example, as '&#38;') in the original property list will
 be decoded by the XML parser in this module; L<Mac::PropertyList> leaves them
 as-is. Also, accented/special characters are converted into '\x{ff}' sequences
-by the XML parser in this module, but are preserved in their original encoding
-by L<Mac::PropertyList>. The differences may be evident when creating a plist
-file from a parsed data structure, but this has not yet been tested.
+by the XML parser, but are preserved in their original encoding by
+L<Mac::PropertyList>.
 
-In addition, unlike Mac::PropertyList and old versions (< 0.60) of
-Mac::PropertyList::SAX, this module does not trim leading and trailing
-whitespace parsed from plist inputs. The difference in behavior is noticeable
-only in extremely rare cases, but I believe this module's current behavior is
-the more correct. If someone could point me to documentation (probably on the
-plist format specifically) that covers this problem, I would be grateful.
+Unlike Mac::PropertyList and old versions (< 0.60) of Mac::PropertyList::SAX,
+this module does not trim leading and trailing whitespace from plist elements.
+The difference in behavior is thought to be rarely noticeable; in any case, I
+believe this module's current behavior is the more correct. Any documentation
+that covers this problem would be appreciated.
 
 The behavior of create_from_hash and create_from_array has changed: these
 functions (which are really just aliases to the new create_from_ref function)
 are now capable of recursively serializing complex data structures. For inputs
-that Mac::PropertyList's create_from_* functions handlsd, the output should be
-the same, but the addition of functionality means that the reverse is not true.
+that Mac::PropertyList's create_from_* functions handled, the output should be
+the same, but the reverse is not true.
 
 =head1 SUPPORT
 

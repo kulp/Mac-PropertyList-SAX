@@ -17,10 +17,11 @@ XML parsing itself, intead of handing it off to a dedicated parser. This module
 uses L<XML::SAX::ParserFactory> to select a parser capable of doing the heavy
 lifting, reducing parsing time on large files by a factor of 30 or more.
 
-This module does not replace Mac::PropertyList: it depends on it for some
+This module does not replace L<Mac::PropertyList>: it depends on it for some
 package definitions and plist printing routines. You should, however, be able
-to replace all "use Mac::PropertyList" lines with "use Mac::PropertyList::SAX"
-and notice an immediate improvement in performance on large input files.
+to replace all C<use L<Mac::PropertyList>> lines with C<use
+Mac::PropertyList::SAX>, without changing anything else, and notice an
+immediate improvement in performance on large input files.
 
 Performance will depend largely on the parser that L<XML::SAX::ParserFactory>
 selects for you; if you have not installed L<XML::SAX::Expat> or another fast
@@ -35,7 +36,6 @@ use warnings;
 
 # Passthrough function
 use Mac::PropertyList qw(plist_as_string);
-use UNIVERSAL::isa qw(isa);
 use XML::SAX::ParserFactory;
 
 use base qw(Exporter);
@@ -44,6 +44,7 @@ our @EXPORT_OK = qw(
     parse_plist 
     parse_plist_fh
     parse_plist_file
+    parse_plist_string
     plist_as_string
     create_from_ref
     create_from_hash
@@ -53,16 +54,16 @@ our @EXPORT_OK = qw(
 our %EXPORT_TAGS = (
     all    => \@EXPORT_OK,
     create => [ qw(create_from_ref create_from_hash create_from_array plist_as_string) ],
-    parse  => [ qw(parse_plist parse_plist_fh parse_plist_file) ],
+    parse  => [ qw(parse_plist parse_plist_fh parse_plist_file parse_plist_string) ],
 );
 
 =head1 VERSION
 
-Version 0.64
+Version 0.70
 
 =cut
 
-our $VERSION = '0.64';
+our $VERSION = '0.70';
 
 =head1 EXPORTS
 
@@ -84,14 +85,12 @@ See L<Mac::PropertyList/parse_plist_file>
 sub parse_plist_file {
     my $file = shift;
 
-    return parse_plist_fh($file) if ref $file;
-
-    unless(-e $file) {
-        carp("parse_plist_file: file [$file] does not exist!");
-        return;
+    if (ref $file) {
+        parse_plist_fh($file);
+    } else {
+        carp("parse_plist_file: file [$file] does not exist!"), return unless -e $file;
+        _parse("parse_uri", $file);
     }
-
-    parse_plist_fh(do { local $/; open my($fh), $file; $fh });
 }
 
 =item parse_plist_fh
@@ -100,7 +99,7 @@ See L<Mac::PropertyList/parse_plist_fh>
 
 =cut
 
-sub parse_plist_fh { my $fh = shift; parse_plist(do { local $/; <$fh> }) }
+sub parse_plist_fh { _parse("parse_file", @_) }
 
 =item parse_plist
 
@@ -108,11 +107,21 @@ See L<Mac::PropertyList/parse_plist>
 
 =cut
 
-sub parse_plist {
-    my ($data) = @_;
+sub parse_plist { _parse("parse_string", @_) }
+
+=item parse_plist_string
+
+An alias to parse_plist, provided for better regularity compared to Perl SAX.
+
+=cut
+
+*parse_plist_string = \&parse_plist;
+
+sub _parse {
+    my ($sub, $data) = @_;
 
     my $handler = Mac::PropertyList::SAX::Handler->new;
-    XML::SAX::ParserFactory->parser(Handler => $handler)->parse_string($data);
+    XML::SAX::ParserFactory->parser(Handler => $handler)->$sub($data);
 
     $handler->{struct}
 }
@@ -121,10 +130,10 @@ sub parse_plist {
 
 Create a plist from an array or hash reference.
 
-The values of the hash can be simple scalars or references. References are
-handled recursively, and Mac::PropertyList objects are output correctly.
-All plain scalars are treated as strings (use Mac::PropertyList objects to
-represent other types of scalars).
+The values of the hash can be simple scalars or references. Hash and array
+references are handled recursively, and L<Mac::PropertyList> objects are output
+correctly.  All other scalars are treated as strings (use L<Mac::PropertyList>
+objects to represent other types of scalars).
 
 Returns a string representing the hash in the plist format.
 
@@ -154,9 +163,9 @@ sub create_from_ref {
         # We could hand off serialization of all Mac::PropertyList::Item objects
         # but there is no 'write' method defined for it (though all its
         # subclasses have one). Let's just handle Scalars, which are safe.
-           if (isa $val, 'Mac::PropertyList::Scalar') { $val->write }
-        elsif (isa $val,                      'HASH') { _handle_hash ($val) }
-        elsif (isa $val,                     'ARRAY') { _handle_array($val) }
+           if (UNIVERSAL::isa($val, 'Mac::PropertyList::Scalar')) { $val->write }
+        elsif (UNIVERSAL::isa($val,                      'HASH')) { _handle_hash ($val) }
+        elsif (UNIVERSAL::isa($val,                     'ARRAY')) { _handle_array($val) }
         else { Mac::PropertyList::SAX::string->new($val)->write }
     };
 
@@ -167,7 +176,7 @@ sub create_from_ref {
 
 =item create_from_hash( HASH_REF )
 
-Provided for backward compatibility with Mac::PropertyList: aliases
+Provided for backward compatibility with L<Mac::PropertyList>: aliases
 create_from_ref.
 
 =cut
@@ -176,7 +185,7 @@ create_from_ref.
 
 =item create_from_array( ARRAY_REF )
 
-Provided for backward compatibility with Mac::PropertyList: aliases
+Provided for backward compatibility with L<Mac::PropertyList>: aliases
 create_from_ref.
 
 =cut
@@ -316,22 +325,30 @@ package Mac::PropertyList::SAX::Scalar;
 use base qw(Mac::PropertyList::Scalar);
 use overload '""' => sub { $_[0]->as_basic_data };
 package Mac::PropertyList::SAX::date;
-use base qw(Mac::PropertyList::SAX::Scalar Mac::PropertyList::date);
+use base qw(Mac::PropertyList::date Mac::PropertyList::SAX::Scalar);
 package Mac::PropertyList::SAX::real;
-use base qw(Mac::PropertyList::SAX::Scalar Mac::PropertyList::real);
+use base qw(Mac::PropertyList::real Mac::PropertyList::SAX::Scalar);
 package Mac::PropertyList::SAX::integer;
-use base qw(Mac::PropertyList::SAX::Scalar Mac::PropertyList::integer);
+use base qw(Mac::PropertyList::integer Mac::PropertyList::SAX::Scalar);
 package Mac::PropertyList::SAX::string;
-use base qw(Mac::PropertyList::SAX::Scalar Mac::PropertyList::string);
+use base qw(Mac::PropertyList::string Mac::PropertyList::SAX::Scalar);
 package Mac::PropertyList::SAX::data;
-use base qw(Mac::PropertyList::SAX::Scalar Mac::PropertyList::data);
+use base qw(Mac::PropertyList::data Mac::PropertyList::SAX::Scalar);
 package Mac::PropertyList::SAX::Boolean;
-use base qw(Mac::PropertyList::Boolean);
-use overload '""' => sub { $_[0]->value };
+use Object::MultiType;
+use base qw(Mac::PropertyList::Boolean Object::MultiType);
+use overload '""' => sub { shift->value };
+sub new {
+    my $class = shift;
+    my($type) = $class =~ /::([^:]+)$/;
+    my $b = $type =~ /true/i ? 1 : 0;
+    bless Object::MultiType->new('scalar' => $type, 'bool' => $b) => $class
+}
+sub value { ${${$_[0]}->scalar} }
 package Mac::PropertyList::SAX::true;
 use base qw(Mac::PropertyList::SAX::Boolean Mac::PropertyList::true);
 package Mac::PropertyList::SAX::false;
-use base qw(Mac::PropertyList::SAX::Boolean Mac::PropertyList::false);
+use base qw(Mac::PropertyList::SAX::Boolean Mac::PropertyList::true);
 
 1;
 
@@ -341,23 +358,24 @@ __END__
 
 =head1 BUGS / CAVEATS
 
-Ampersands encoded (for example, as '&#38;') in the original property list will
-be decoded by the XML parser in this module; L<Mac::PropertyList> leaves them
-as-is. Also, accented/special characters are converted into '\x{ff}' sequences
-by the XML parser, but are preserved in their original encoding by
-L<Mac::PropertyList>.
+Any sane XML parser you can find to use with this module will decode
+XHTML-encoded entities in the original property list; L<Mac::PropertyList>
+doesn't touch them. Also, your XML parser may convert accented/special
+characters into '\x{ff}' sequences; these are preserved in their original
+encoding by L<Mac::PropertyList>.
 
-Unlike Mac::PropertyList and old versions (< 0.60) of Mac::PropertyList::SAX,
-this module does not trim leading and trailing whitespace from plist elements.
-The difference in behavior is thought to be rarely noticeable; in any case, I
-believe this module's current behavior is the more correct. Any documentation
-that covers this problem would be appreciated.
+Unlike L<Mac::PropertyList> and old versions (< 0.60) of
+Mac::PropertyList::SAX, this module does not trim leading and trailing
+whitespace from plist elements.  The difference in behavior is thought to be
+rarely noticeable; in any case, I believe this module's current behavior is the
+more correct. Any documentation that covers this problem would be appreciated.
 
 The behavior of create_from_hash and create_from_array has changed: these
 functions (which are really just aliases to the new create_from_ref function)
-are now capable of recursively serializing complex data structures. For inputs
-that Mac::PropertyList's create_from_* functions handled, the output should be
-the same, but the reverse is not true.
+are now capable of recursively serializing complex data structures. That is:
+for inputs that L<Mac::PropertyList>'s create_from_* functions handled, the
+output should be the same, I<but> this module supports inputs that
+L<Mac::PropertyList> does not.
 
 =head1 SUPPORT
 

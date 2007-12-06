@@ -102,4 +102,4 @@ isa_ok( $plist, 'Mac::PropertyList::dict'                     );
 is( $plist->type, 'dict', 'item is a dict type'                       );
 isa_ok( $plist->value, 'Mac::PropertyList::dict'            );
 is( $hash->value->{Roscoe}->value, 1,       'Roscoe string has right value'   );
-is( $hash->value->{Boolean}->value, 'true', 'Boolean string has right value'  );
+is( "".$hash->value->{Boolean}->value, 'true', 'Boolean string has right value'  );

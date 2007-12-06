@@ -79,3 +79,12 @@ Revision history for Mac-PropertyList-SAX
         No functionality changes. Switched to Module::Install for installation;
         fixed a typo; made POD more concise.
 
+0.70    2007-12-06T12:11
+        Rewrote POD for clarity and conciseness; added some function aliases;
+        potentially improved performance by ceasing to naively read in entire
+        file before starting a parse; made boolean objects descendants of
+        Object::MultiType (a new dependency) for ease of use in a boolean
+        context while maintaining backward compatibility and stringification;
+        removed dependence on unnecessary module UNIVERSAL::isa. Added
+        t/overload.t, which checks boolean and stringification overloads.
+

@@ -1,3 +1,4 @@
+.cvsignore
 Changes
 inc/Module/AutoInstall.pm
 inc/Module/Install.pm
@@ -18,6 +19,8 @@ plists/com.apple.iPhoto.plist
 plists/com.apple.iTunes.plist
 plists/com.apple.systempreferences.plist
 plists/com.unsanity.windowshadex.plist
+plists/test0.plist
+plists/test1.plist
 README
 t/00-load.t
 t/array.t
@@ -28,6 +31,7 @@ t/dict.t
 t/false_key.t
 t/import.t
 t/load.t
+t/overload.t
 t/parse.t
 t/parse_plist_fh.t
 t/plists.t

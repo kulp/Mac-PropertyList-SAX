@@ -21,9 +21,9 @@ requires:
   Exporter: 0
   MIME::Base64: 0
   Mac::PropertyList: 1.29
-  UNIVERSAL::isa: 0
+  Object::MultiType: 0.02
   XML::SAX::Base: 0
   XML::SAX::ParserFactory: 0
   constant: 0
   enum: 0
-version: 0.64
+version: 0.70

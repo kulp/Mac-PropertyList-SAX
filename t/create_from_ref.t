@@ -4,13 +4,11 @@ use Test::More tests => 1;
 
 use Mac::PropertyList::SAX;
 
-my $expected = do { local $/; open my($fh), 'plists/test0.plist'; <$fh> };
-
 my $structure = {
 	a => 'b',
 	c => [ 'd', 'e' ],
 	f => {
-		g => 'h',
+		g => Mac::PropertyList::SAX::true->new,
 		i => 1,
 		j => [
 			{ a => 'b' },

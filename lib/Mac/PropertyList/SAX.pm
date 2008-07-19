@@ -34,11 +34,15 @@ for information on how to set which parser is used.
 use strict;
 use warnings;
 
+use Carp qw(carp);
+use HTML::Entities qw(encode_entities_numeric);
 # Passthrough function
 use Mac::PropertyList qw(plist_as_string);
 use XML::SAX::ParserFactory;
 
 use base qw(Exporter);
+
+our $ENCODE_ENTITIES = 1;
 
 our @EXPORT_OK = qw(
     parse_plist 
@@ -59,11 +63,11 @@ our %EXPORT_TAGS = (
 
 =head1 VERSION
 
-Version 0.70
+Version 0.80
 
 =cut
 
-our $VERSION = '0.70';
+our $VERSION = '0.80';
 
 =head1 EXPORTS
 
@@ -135,7 +139,7 @@ references are handled recursively, and L<Mac::PropertyList> objects are output
 correctly.  All other scalars are treated as strings (use L<Mac::PropertyList>
 objects to represent other types of scalars).
 
-Returns a string representing the hash in the plist format.
+Returns a string representing the reference in serialized plist format.
 
 =cut
 
@@ -148,7 +152,7 @@ sub create_from_ref {
             my ($hash) = @_;
             Mac::PropertyList::SAX::dict->write_open,
                 (map { "\t$_" } map {
-                    Mac::PropertyList::SAX::dict->write_key($_),
+                    Mac::PropertyList::SAX::dict->write_key(_escape($_)),
                     _handle_value($hash->{$_}) } keys %$hash),
                 Mac::PropertyList::SAX::dict->write_close
         };
@@ -163,10 +167,10 @@ sub create_from_ref {
         # We could hand off serialization of all Mac::PropertyList::Item objects
         # but there is no 'write' method defined for it (though all its
         # subclasses have one). Let's just handle Scalars, which are safe.
-           if (UNIVERSAL::isa($val, 'Mac::PropertyList::Scalar')) { $val->write }
-        elsif (UNIVERSAL::isa($val,                      'HASH')) { _handle_hash ($val) }
-        elsif (UNIVERSAL::isa($val,                     'ARRAY')) { _handle_array($val) }
-        else { Mac::PropertyList::SAX::string->new($val)->write }
+           if (UNIVERSAL::can($val, 'write')) { $val->write }
+        elsif (UNIVERSAL::isa($val,  'HASH')) { _handle_hash ($val) }
+        elsif (UNIVERSAL::isa($val, 'ARRAY')) { _handle_array($val) }
+        else { Mac::PropertyList::SAX::string->new(_escape($val))->write }
     };
 
     $Mac::PropertyList::XML_head .
@@ -192,6 +196,14 @@ create_from_ref.
 
 *create_from_array = \&create_from_ref;
 
+=item _escape( STRING )
+
+B<Internal use only.> Numerically escapes illegal characters into XML entities.
+
+=cut
+
+sub _escape { encode_entities_numeric(@_) }
+
 package Mac::PropertyList::SAX::Handler;
 
 use strict;
@@ -200,8 +212,6 @@ use warnings;
 use enum qw(S_EMPTY S_TOP S_FREE S_DICT S_ARRAY S_KEY S_TEXT);
 
 use Carp qw(carp croak);
-# Make use strict 'vars' usable with Alias
-use Alias qw(attr); $Alias::AttrPrefix = 'main::';
 use MIME::Base64;
 
 # Element-name definitions
@@ -242,31 +252,30 @@ sub new {
 }
 
 sub start_element {
-    my $self = attr shift;
+    my $self = shift;
     my ($data) = @_;
     my $name = $data->{Name};
 
     # State transition definitions
-         if ($::context == S_EMPTY and $name eq ROOT) {
-             $::context  = S_TOP;
-    } elsif ($::context == S_TOP or $types{$name} or $name eq KEY) {
-        push @::stack, {
-            key     => $::key,
-            context => $::context,
-            struct  => $::struct,
+         if ($self->{context} == S_EMPTY and $name eq ROOT) {
+             $self->{context}  = S_TOP;
+    } elsif ($self->{context} == S_TOP or $types{$name} or $name eq KEY) {
+        push @{ $self->{stack} }, {
+            key     => $self->{key},
+            context => $self->{context},
+            struct  => $self->{struct},
         };
 
-        if ($name eq DICT) {
-            $::struct = Mac::PropertyList::SAX::dict->new;
-            $::context = S_DICT;
-            undef $::key;
-        } elsif ($name eq ARRAY) {
-            $::struct = Mac::PropertyList::SAX::array->new;
-            $::context = S_ARRAY;
+        if ($complex_types{$name}) {
+            $self->{struct} = "Mac::PropertyList::SAX::$name"->new;
+            $self->{context} = eval "S_" . uc $name;
+            delete $self->{key};
         }
-        elsif ($simple_types{$name}      ) { $::context = S_TEXT }
-        elsif (              $name eq KEY) { $::context = S_KEY  }
-        elsif (       $types{$name}      ) { $::context = S_FREE }
+        elsif ($simple_types{$name}) { $self->{context} = S_TEXT }
+        elsif ($name eq KEY) {
+            croak "<key/> in improper context $self->{context}" unless $self->{context} == S_DICT;
+            $self->{context} = S_KEY;
+        }
         else { croak "Top-level element '$name' in plist is not recognized" }
     } else {
         croak "Received invalid start element '$name'";
@@ -274,53 +283,51 @@ sub start_element {
 }
 
 sub end_element {
-    my $self = attr shift;
+    my $self = shift;
     my ($data) = @_;
     my $name = $data->{Name};
 
-    if ($name eq ROOT) {
-        # Discard plist element
-    } elsif (@::stack) {
-        my $elt = pop @::stack;
+    if ($name ne ROOT) { # Discard plist element
+        my $elt = pop @{ $self->{stack} };
 
-        my $value = $::struct;
-        ($::struct, $::key, $::context) = @{$elt}{qw(struct key context)};
+        my $value = $self->{struct};
+        ($self->{struct}, $self->{key}, $self->{context}) = @{$elt}{qw(struct key context)};
 
         if ($simple_types{$name}) {
             # Wrap accumulated character data in an object
             $value = "Mac::PropertyList::SAX::$name"->new(
-                $name eq DATA ? MIME::Base64::decode_base64($::accum)
-                              : $::accum);
+                exists $self->{accum}
+                    ? $name eq DATA
+                        ? MIME::Base64::decode_base64($self->{accum})
+                        : $self->{accum}
+                    : ""
+                );
 
-            undef $::accum;
+            delete $self->{accum};
         } elsif ($name eq KEY) {
-            $::key = $::accum;
-            undef $::accum;
+            $self->{key} = $self->{accum};
+            delete $self->{accum};
+            return;
         }
 
-           if ($::context == S_DICT ) {       $::struct->{$::key} = $value }
-        elsif ($::context == S_ARRAY) { push @$::struct,            $value }
-        elsif ($::context == S_TEXT
-            or $::context == S_FREE
-            or $::context == S_TOP  ) {       $::struct           = $value }
-    } else {
-        croak "End-element received when stack already empty";
+           if ($self->{context} == S_DICT ) {         $self->{struct}{$self->{key}} = $value }
+        elsif ($self->{context} == S_ARRAY) { push @{ $self->{struct} },              $value }
+        elsif ($self->{context} == S_TOP  ) {         $self->{struct}               = $value }
+        else { croak "Bad context $self->{context}" }
     }
 }
 
 sub characters {
-    my $self = attr shift;
+    my $self = shift;
     my ($data) = @_;
-    $::accum .= $data->{Data} if $::context == S_TEXT or $::context == S_KEY;
+    $self->{accum} .= $data->{Data} if $self->{context} == S_TEXT or $self->{context} == S_KEY;
 }
 
 # Convenient subclasses
 package Mac::PropertyList::SAX::array;
 use base qw(Mac::PropertyList::array);
-use overload '""' => sub { $_[0]->as_basic_data };
 package Mac::PropertyList::SAX::dict;
 use base qw(Mac::PropertyList::dict);
-use overload '""' => sub { $_[0]->as_basic_data };
 package Mac::PropertyList::SAX::Scalar;
 use base qw(Mac::PropertyList::Scalar);
 use overload '""' => sub { $_[0]->as_basic_data };
@@ -363,6 +370,10 @@ XHTML-encoded entities in the original property list; L<Mac::PropertyList>
 doesn't touch them. Also, your XML parser may convert accented/special
 characters into '\x{ff}' sequences; these are preserved in their original
 encoding by L<Mac::PropertyList>.
+
+Before version 0.80 of this module, characters invalid in XML were not
+serialized properly; from version 0.80 on, they are converted to hexadecimal
+entity references. Thanks to Jon Connell for pointing out this problem.
 
 Unlike L<Mac::PropertyList> and old versions (< 0.60) of
 Mac::PropertyList::SAX, this module does not trim leading and trailing

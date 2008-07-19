@@ -88,3 +88,7 @@ Revision history for Mac-PropertyList-SAX
         removed dependence on unnecessary module UNIVERSAL::isa. Added
         t/overload.t, which checks boolean and stringification overloads.
 
+0.80    2008-07-19T02:06
+        Removed globally-pollutive dependency on Alias.pm; addressed
+        roundtripping of XML entities (thanks to Jon Connell) and added tests.
+

@@ -6,7 +6,6 @@ name            'Mac-PropertyList-SAX';
 all_from        'lib/Mac/PropertyList/SAX.pm';
 
 # Specific dependencies
-requires        'Alias'                     => 0;
 requires        'Carp'                      => 0;
 requires        'constant'                  => 1.06;
 requires        'enum'                      => 0;

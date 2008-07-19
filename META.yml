@@ -16,7 +16,6 @@ no_index:
     - inc
     - t
 requires:
-  Alias: 0
   Carp: 0
   Exporter: 0
   HTML::Entities: 0
@@ -27,4 +26,4 @@ requires:
   XML::SAX::ParserFactory: 0
   constant: 1.06
   enum: 0
-version: 0.80
+version: 0.81

@@ -16,9 +16,8 @@ no_index:
     - inc
     - t
 requires:
-  Carp: 0
-  Exporter: 0
   HTML::Entities: 0
+  HTML::Entities::Numbered: 0.04
   MIME::Base64: 0
   Mac::PropertyList: 1.29
   Object::MultiType: 0.02
@@ -26,4 +25,4 @@ requires:
   XML::SAX::ParserFactory: 0
   constant: 1.06
   enum: 0
-version: 0.81
+version: 0.82

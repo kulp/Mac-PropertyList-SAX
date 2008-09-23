@@ -6,11 +6,10 @@ name            'Mac-PropertyList-SAX';
 all_from        'lib/Mac/PropertyList/SAX.pm';
 
 # Specific dependencies
-requires        'Carp'                      => 0;
 requires        'constant'                  => 1.06;
 requires        'enum'                      => 0;
-requires        'Exporter'                  => 0;
 requires        'HTML::Entities'            => 0;
+requires        'HTML::Entities::Numbered'  => 0.04;
 requires        'Mac::PropertyList'         => 1.29;
 requires        'MIME::Base64'              => 0;
 requires        'Object::MultiType'         => 0.02;

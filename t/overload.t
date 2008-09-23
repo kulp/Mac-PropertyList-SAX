@@ -1,4 +1,4 @@
-use Test::More tests => 7;
+use Test::More tests => 8;
 
 use Mac::PropertyList::SAX;
 
@@ -10,6 +10,7 @@ my $parsed = Mac::PropertyList::SAX::parse_plist_string($string);
 isa_ok($parsed->{a},"Mac::PropertyList::SAX::string","string type check");
 isa_ok($parsed->{a},"Mac::PropertyList::string","ancestor string type check");
 is("$parsed->{a}","b","string object stringification overload");
+is("$parsed->{c}->[-1]","5","integer object stringification overload");
 is("$parsed->{f}->{i}","true","boolean true stringification overload");
 is(!!$parsed->{f}->{i},1,"boolean true boolification overload");
 is("$parsed->{f}->{j}","false","boolean false stringification overload");

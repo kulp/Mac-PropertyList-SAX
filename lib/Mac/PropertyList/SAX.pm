@@ -36,6 +36,7 @@ use warnings;
 
 use Carp qw(carp);
 use HTML::Entities qw(encode_entities_numeric);
+use HTML::Entities::Numbered qw(hex2name name2hex_xml);
 # Passthrough function
 use Mac::PropertyList qw(plist_as_string);
 use XML::SAX::ParserFactory;
@@ -61,13 +62,7 @@ our %EXPORT_TAGS = (
     parse  => [ qw(parse_plist parse_plist_fh parse_plist_file parse_plist_string) ],
 );
 
-=head1 VERSION
-
-Version 0.81
-
-=cut
-
-our $VERSION = '0.81';
+our $VERSION = '0.82';
 
 =head1 EXPORTS
 
@@ -198,11 +193,11 @@ create_from_ref.
 
 =item _escape( STRING )
 
-B<Internal use only.> Numerically escapes illegal characters into XML entities.
+B<Internal use only.> Escapes illegal characters into XML entities.
 
 =cut
 
-sub _escape { encode_entities_numeric(@_) }
+sub _escape { name2hex_xml(hex2name(encode_entities_numeric(@_))) }
 
 package Mac::PropertyList::SAX::Handler;
 
@@ -328,8 +323,14 @@ package Mac::PropertyList::SAX::array;
 use base qw(Mac::PropertyList::array);
 package Mac::PropertyList::SAX::dict;
 use base qw(Mac::PropertyList::dict);
+sub write_key { "<key>" . Mac::PropertyList::SAX::_escape($_[1]) . "</key>" }
 package Mac::PropertyList::SAX::Scalar;
 use base qw(Mac::PropertyList::Scalar);
+sub write {
+    $_[0]->write_open .
+    Mac::PropertyList::SAX::_escape($_[0]->value) .
+    $_[0]->write_close
+}
 use overload '""' => sub { $_[0]->as_basic_data };
 package Mac::PropertyList::SAX::date;
 use base qw(Mac::PropertyList::date Mac::PropertyList::SAX::Scalar);
@@ -339,6 +340,8 @@ package Mac::PropertyList::SAX::integer;
 use base qw(Mac::PropertyList::integer Mac::PropertyList::SAX::Scalar);
 package Mac::PropertyList::SAX::string;
 use base qw(Mac::PropertyList::string Mac::PropertyList::SAX::Scalar);
+sub write { $_[0]->Mac::PropertyList::SAX::Scalar::write }
+use overload '""' => sub { $_[0]->as_basic_data };
 package Mac::PropertyList::SAX::data;
 use base qw(Mac::PropertyList::data Mac::PropertyList::SAX::Scalar);
 package Mac::PropertyList::SAX::Boolean;
@@ -347,9 +350,9 @@ use base qw(Mac::PropertyList::Boolean Object::MultiType);
 use overload '""' => sub { shift->value };
 sub new {
     my $class = shift;
-    my($type) = $class =~ /::([^:]+)$/;
-    my $b = $type =~ /true/i ? 1 : 0;
-    bless Object::MultiType->new('scalar' => $type, 'bool' => $b) => $class
+    my ($type) = $class =~ /::([^:]+)$/;
+    my $b = lc $type eq "true";
+    bless Object::MultiType->new(scalar => $type, bool => $b) => $class
 }
 sub value { ${${$_[0]}->scalar} }
 package Mac::PropertyList::SAX::true;
@@ -372,8 +375,9 @@ characters into '\x{ff}' sequences; these are preserved in their original
 encoding by L<Mac::PropertyList>.
 
 Before version 0.80 of this module, characters invalid in XML were not
-serialized properly; from version 0.80 on, they are converted to hexadecimal
-entity references. Thanks to Jon Connell for pointing out this problem.
+serialized properly from create_from_ref(); before version 0.82, they were not
+serialized properly in plist_as_string(). Thanks to Jon Connell for pointing
+out these problems.
 
 Unlike L<Mac::PropertyList> and old versions (< 0.60) of
 Mac::PropertyList::SAX, this module does not trim leading and trailing

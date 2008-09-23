@@ -92,3 +92,10 @@ Revision history for Mac-PropertyList-SAX
         Removed globally-pollutive dependency on Alias.pm; addressed
         roundtripping of XML entities (thanks to Jon Connell) and added tests.
 
+0.81    2008-07-19T09:35
+        Removed false dependency on Alias.pm in Makefile.PL.
+
+0.82    2008-08-21T15:14
+        create_from_ref() entity serialization was addressed in 0.80, but
+        plist_as_string() still output invalid XML. Thanks goes again to Jon Connell.
+

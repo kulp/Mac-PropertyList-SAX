@@ -21,6 +21,8 @@ plists/com.apple.systempreferences.plist
 plists/com.unsanity.windowshadex.plist
 plists/test0.plist
 plists/test1.plist
+plists/test2.plist
+plists/test3.plist
 README
 t/00-load.t
 t/array.t

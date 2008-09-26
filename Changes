@@ -99,3 +99,7 @@ Revision history for Mac-PropertyList-SAX
         create_from_ref() entity serialization was addressed in 0.80, but
         plist_as_string() still output invalid XML. Thanks goes again to Jon Connell.
 
+0.83    2008-09-26T09:56
+        XML::SAX::ParserFactory might not return an XML-capable parser, so
+        start depending on XML::SAX::Expat and let the user change that
+        dependency at runtime with an environment variable if necessary.

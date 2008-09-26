@@ -16,13 +16,15 @@ no_index:
     - inc
     - t
 requires:
+  Encode: 0
   HTML::Entities: 0
   HTML::Entities::Numbered: 0.04
   MIME::Base64: 0
   Mac::PropertyList: 1.29
   Object::MultiType: 0.02
   XML::SAX::Base: 0
+  XML::SAX::Expat: 0.4
   XML::SAX::ParserFactory: 0
   constant: 1.06
   enum: 0
-version: 0.82
+version: 0.83

@@ -24,10 +24,10 @@ Mac::PropertyList::SAX>, without changing anything else, and notice an
 immediate improvement in performance on large input files.
 
 Performance will depend largely on the parser that L<XML::SAX::ParserFactory>
-selects for you; if you have not installed L<XML::SAX::Expat> or another fast
-parser, the default L<XML::SAX::PurePerl> parser will be used, which may give
-I<worse> performance than L<Mac::PropertyList>. See L<XML::SAX::ParserFactory>
-for information on how to set which parser is used.
+selects for you. By default, L<XML::SAX::Expat> is used; to change the parser
+used, set the environment variable C<MAC_PROPERTYLIST_SAX_PARSER> to a value
+accepted by $XML::SAX::ParserPackage from L<XML::SAX::ParserFactory> (or set
+$XML::SAX::ParserPackage directly).
 
 =cut
 
@@ -62,7 +62,9 @@ our %EXPORT_TAGS = (
     parse  => [ qw(parse_plist parse_plist_fh parse_plist_file parse_plist_string) ],
 );
 
-our $VERSION = '0.82';
+our $VERSION = '0.83';
+
+$XML::SAX::ParserPackage = $ENV{MAC_PROPERTYLIST_SAX_PARSER} || "XML::SAX::Expat";
 
 =head1 EXPORTS
 
@@ -139,25 +141,24 @@ Returns a string representing the reference in serialized plist format.
 =cut
 
 sub create_from_ref {
-    # use "real" local subs to protect internals
-    local *_handle_value = sub {
+    sub _handle_value {
         my ($val) = @_;
 
-        local *_handle_hash = sub {
+        sub _handle_hash {
             my ($hash) = @_;
             Mac::PropertyList::SAX::dict->write_open,
                 (map { "\t$_" } map {
                     Mac::PropertyList::SAX::dict->write_key(_escape($_)),
                     _handle_value($hash->{$_}) } keys %$hash),
                 Mac::PropertyList::SAX::dict->write_close
-        };
+        }
 
-        local *_handle_array = sub {
+        sub _handle_array {
             my ($array) = @_;
             Mac::PropertyList::SAX::array->write_open,
                 (map { "\t$_" } map { _handle_value($_) } @$array),
                 Mac::PropertyList::SAX::array->write_close
-        };
+        }
 
         # We could hand off serialization of all Mac::PropertyList::Item objects
         # but there is no 'write' method defined for it (though all its
@@ -166,7 +167,7 @@ sub create_from_ref {
         elsif (UNIVERSAL::isa($val,  'HASH')) { _handle_hash ($val) }
         elsif (UNIVERSAL::isa($val, 'ARRAY')) { _handle_array($val) }
         else { Mac::PropertyList::SAX::string->new(_escape($val))->write }
-    };
+    }
 
     $Mac::PropertyList::XML_head .
         (join "\n", _handle_value(shift)) . "\n" .
@@ -391,6 +392,16 @@ are now capable of recursively serializing complex data structures. That is:
 for inputs that L<Mac::PropertyList>'s create_from_* functions handled, the
 output should be the same, I<but> this module supports inputs that
 L<Mac::PropertyList> does not.
+
+Before version 0.83, this module left the selection of a SAX-based parser
+entirely to the discretion of L<XML::SAX::ParserFactory>. Unfortunately, it
+seems impossible to guarantee that the parser returned even supports XML
+(L<XML::SAX::RTF> could be returned), so it has become necessary to select a
+parser by default: L<XML::SAX::Expat>, which is now part of the dependencies of
+this module. If you know you will use another parser of a specific name, you
+can force installation without L<XML::SAX::Expat> and always specify the parser
+you wish to use by setting $XML::SAX::ParserPackage or the
+MAC_PROPERTYLIST_SAX_PARSER environment variable (see L<DESCRIPTION>).
 
 =head1 SUPPORT
 

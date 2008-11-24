@@ -103,3 +103,7 @@ Revision history for Mac-PropertyList-SAX
         XML::SAX::ParserFactory might not return an XML-capable parser, so
         start depending on XML::SAX::Expat and let the user change that
         dependency at runtime with an environment variable if necessary.
+
+0.84    2008-11-23T11:54
+        Require LWP for test, since XML::Parser needs to fetch entity
+        definitions from the web.

@@ -62,7 +62,7 @@ our %EXPORT_TAGS = (
     parse  => [ qw(parse_plist parse_plist_fh parse_plist_file parse_plist_string) ],
 );
 
-our $VERSION = '0.83';
+our $VERSION = '0.84';
 
 $XML::SAX::ParserPackage = $ENV{MAC_PROPERTYLIST_SAX_PARSER} || "XML::SAX::Expat";
 

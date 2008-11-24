@@ -18,6 +18,7 @@ requires        'XML::SAX::Base'            => 0;
 requires        'XML::SAX::Expat'           => 0.40;
 requires        'XML::SAX::ParserFactory'   => 0;
 build_requires  'Test::More'                => 0.42;
+build_requires  'LWP'                       => 0;
 
 auto_install;
 WriteAll;

@@ -15,26 +15,14 @@ use Mac::PropertyList::SAX;
             },
         },
     );
-    my @output = (
-        "&lt;&amp;&gt;&apos;",
-        [ qw(&amp; &apos; &lt; &gt; &quot;) ],
-        {
-            c => [ '&quot;', '&quot;two&quot;' ],
-            f => {
-                '&apos;' => Mac::PropertyList::SAX::true->new,
-                '&amp;&amp;&amp;amp;' => 1,
-                '&gt;&lt;' => [ { a => ' foo &amp; bar &lt;&lt; 3 ' } ],
-            },
-        },
-    );
 
-
+	# This is not a really robust test; it tests round-tripping, but doesn't
+	# guarantee that the plist is actually valid in-between
     while (defined(my $input = shift @input)) {
-        my $output = shift @output;
         my $string = Mac::PropertyList::SAX::create_from_ref($input);
         my $parsed = Mac::PropertyList::SAX::parse_plist_string($string);
 
-        is_deeply($parsed, $output, "XML entity encoding");
+        is_deeply($parsed, $input, "XML entity encoding");
     }
 }
 

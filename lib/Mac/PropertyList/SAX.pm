@@ -2,6 +2,10 @@
 
 Mac::PropertyList::SAX - work with Mac plists at a low level, fast
 
+$Id: SAX.pm,v 1.3 2010/09/13 17:07:35 bpohl Exp $
+
+$Source: /cvs/AutoProcs/TRZ/Mac/PropertyList/SAX.pm,v $
+
 =cut
 
 package Mac::PropertyList::SAX;
@@ -29,6 +33,11 @@ used, set the environment variable C<MAC_PROPERTYLIST_SAX_PARSER> to a value
 accepted by $XML::SAX::ParserPackage from L<XML::SAX::ParserFactory> (or set
 $XML::SAX::ParserPackage directly).
 
+NOTE: This is an altered version of the module made by ingZ, Inc.  It
+fixes a bug where the output was being XHTML encoded twice over.  It
+also now pays attention to the ENCODE_ENTITIES class variable and adds
+the ENCODE_UNSAFE_CHARS variable.
+
 =cut
 
 use strict;
@@ -42,8 +51,6 @@ use Mac::PropertyList qw(plist_as_string);
 use XML::SAX::ParserFactory;
 
 use base qw(Exporter);
-
-our $ENCODE_ENTITIES = 1;
 
 our @EXPORT_OK = qw(
     parse_plist 
@@ -62,9 +69,49 @@ our %EXPORT_TAGS = (
     parse  => [ qw(parse_plist parse_plist_fh parse_plist_file parse_plist_string) ],
 );
 
-our $VERSION = '0.84';
+our $VERSION = '0.84i';
+
+
+
+=head1 CLASS VARIABLES
+
+Class scoped variables that control the packages settings.
+
+=over 4
+
+=item ENCODE_ENTITIES
+
+Allows the XHTML encoding of the data to be turned off.  Default = 1
+
+=item ENCODE_UNSAFE_CHARS
+
+A Perl character class definition containing the only characters to be
+XHTML encoded.  See HTML::Entities::encode_entities for description of
+the $unsafe_chars parameter.  Default = undef
+
+=cut
+
+our $ENCODE_ENTITIES     = 1;
+our $ENCODE_UNSAFE_CHARS = undef;
+
+=item OLD_BEHAVIOR
+
+Restores the old behavior of double encoding output data.  Default = 0
+
+=cut
+
+our $OLD_BEHAVIOR = 0;
+
+=item XML::SAX::ParserPackage
+
+Parser to use.  Can also be set with environment variable
+MAC_PROPERTYLIST_SAX_PARSER.  Default = "XML::SAX::Expat"
+
+=cut
 
 $XML::SAX::ParserPackage = $ENV{MAC_PROPERTYLIST_SAX_PARSER} || "XML::SAX::Expat";
+
+=back
 
 =head1 EXPORTS
 
@@ -148,7 +195,7 @@ sub create_from_ref {
             my ($hash) = @_;
             Mac::PropertyList::SAX::dict->write_open,
                 (map { "\t$_" } map {
-                    Mac::PropertyList::SAX::dict->write_key(_escape($_)),
+                    Mac::PropertyList::SAX::dict->write_key($OLD_BEHAVIOR?_escape($_):$_),
                     _handle_value($hash->{$_}) } keys %$hash),
                 Mac::PropertyList::SAX::dict->write_close
         }
@@ -166,7 +213,7 @@ sub create_from_ref {
            if (UNIVERSAL::can($val, 'write')) { $val->write }
         elsif (UNIVERSAL::isa($val,  'HASH')) { _handle_hash ($val) }
         elsif (UNIVERSAL::isa($val, 'ARRAY')) { _handle_array($val) }
-        else { Mac::PropertyList::SAX::string->new(_escape($val))->write }
+        else { Mac::PropertyList::SAX::string->new($OLD_BEHAVIOR?_escape($val):$val)->write }
     }
 
     $Mac::PropertyList::XML_head .
@@ -198,7 +245,13 @@ B<Internal use only.> Escapes illegal characters into XML entities.
 
 =cut
 
-sub _escape { name2hex_xml(hex2name(encode_entities_numeric(@_))) }
+sub _escape {
+    my $string = join("\n",grep(defined,@_));
+    $ENCODE_ENTITIES && 
+        return name2hex_xml(hex2name(encode_entities_numeric($string,
+                                                             $ENCODE_UNSAFE_CHARS)));
+    return $string;
+}
 
 package Mac::PropertyList::SAX::Handler;
 
@@ -324,13 +377,13 @@ package Mac::PropertyList::SAX::array;
 use base qw(Mac::PropertyList::array);
 package Mac::PropertyList::SAX::dict;
 use base qw(Mac::PropertyList::dict);
-sub write_key { "<key>" . Mac::PropertyList::SAX::_escape($_[1]) . "</key>" }
+sub write_key { "<key>" . (Mac::PropertyList::SAX::_escape($_[1])||'') . "</key>" }
 package Mac::PropertyList::SAX::Scalar;
 use base qw(Mac::PropertyList::Scalar);
 sub write {
     $_[0]->write_open .
-    Mac::PropertyList::SAX::_escape($_[0]->value) .
-    $_[0]->write_close
+        (Mac::PropertyList::SAX::_escape($_[0]->value)||'') .
+            $_[0]->write_close
 }
 use overload '""' => sub { $_[0]->as_basic_data };
 package Mac::PropertyList::SAX::date;
@@ -429,5 +482,3 @@ it under the same terms as Perl itself, either Perl version 5.8.4 or,
 at your option, any later version of Perl 5 you may have available.
 
 =cut
-
-# vi: set et ts=4 sw=4: #

@@ -8,26 +8,29 @@ package Mac::PropertyList::SAX;
 
 =head1 SYNOPSIS
 
-See L<Mac::PropertyList>
+See L<Mac::PropertyList|Mac::PropertyList>
 
 =head1 DESCRIPTION
 
-L<Mac::PropertyList> is useful, but very slow on large files because it does
-XML parsing itself, intead of handing it off to a dedicated parser. This module
-uses L<XML::SAX::ParserFactory> to select a parser capable of doing the heavy
-lifting, reducing parsing time on large files by a factor of 30 or more.
+L<Mac::PropertyList|Mac::PropertyList> is useful, but very slow on large files
+because it does XML parsing itself, intead of handing it off to a dedicated
+parser. This module uses L<XML::SAX::ParserFactory|XML::SAX::ParserFactory> to
+select a parser capable of doing the heavy lifting, reducing parsing time on
+large files by a factor of 30 or more.
 
-This module does not replace L<Mac::PropertyList>: it depends on it for some
-package definitions and plist printing routines. You should, however, be able
-to replace all C<use L<Mac::PropertyList>> lines with C<use
-Mac::PropertyList::SAX>, without changing anything else, and notice an
-immediate improvement in performance on large input files.
+This module does not replace L<Mac::PropertyList|Mac::PropertyList>: it depends
+on it for some package definitions and plist printing routines. You should,
+however, be able to replace all C<use Mac::PropertyList>
+lines with C<use Mac::PropertyList::SAX>, without changing anything else, and
+notice an immediate improvement in performance on large input files.
 
-Performance will depend largely on the parser that L<XML::SAX::ParserFactory>
-selects for you. By default, L<XML::SAX::Expat> is used; to change the parser
-used, set the environment variable C<MAC_PROPERTYLIST_SAX_PARSER> to a value
-accepted by $XML::SAX::ParserPackage from L<XML::SAX::ParserFactory> (or set
-$XML::SAX::ParserPackage directly).
+Performance will depend largely on the parser that
+L<XML::SAX::ParserFactory|XML::SAX::ParserFactory> selects for you. By default,
+L<XML::SAX::Expat|XML::SAX::Expat> is used; to change the parser used, set the
+environment variable C<MAC_PROPERTYLIST_SAX_PARSER> to a value accepted by
+$XML::SAX::ParserPackage from
+L<XML::SAX::ParserFactory|XML::SAX::ParserFactory> (or set
+C<$XML::SAX::ParserPackage> directly).
 
 =cut
 
@@ -72,13 +75,13 @@ Class scoped variables that control the packages settings.
 
 =item ENCODE_ENTITIES
 
-Allows the XHTML encoding of the data to be turned off.  Default = 1
+Allows the XHTML encoding of the data to be turned off. Default = C<1>
 
 =item ENCODE_UNSAFE_CHARS
 
 A Perl character class definition containing the only characters to be
-XHTML encoded.  See HTML::Entities::encode_entities for description of
-the $unsafe_chars parameter.  Default = undef
+XHTML encoded. See HTML::Entities::encode_entities for description of
+the $unsafe_chars parameter. Default = C<undef>
 
 =cut
 
@@ -87,7 +90,7 @@ our $ENCODE_UNSAFE_CHARS = undef;
 
 =item OLD_BEHAVIOR
 
-Restores the old behavior of double encoding output data.  Default = 0
+Restores the old behavior of double encoding output data. Default = C<0>
 
 =cut
 
@@ -95,8 +98,8 @@ our $OLD_BEHAVIOR = 0;
 
 =item XML::SAX::ParserPackage
 
-Parser to use.  Can also be set with environment variable
-MAC_PROPERTYLIST_SAX_PARSER.  Default = "XML::SAX::Expat"
+Parser to use. Can also be set with environment variable
+C<MAC_PROPERTYLIST_SAX_PARSER>. Default = C<"XML::SAX::Expat">
 
 =cut
 
@@ -170,8 +173,8 @@ sub _parse {
 Create a plist from an array or hash reference.
 
 The values of the hash can be simple scalars or references. Hash and array
-references are handled recursively, and L<Mac::PropertyList> objects are output
-correctly.  All other scalars are treated as strings (use L<Mac::PropertyList>
+references are handled recursively, and L<Mac::PropertyList|Mac::PropertyList> objects are output
+correctly. All other scalars are treated as strings (use L<Mac::PropertyList|Mac::PropertyList>
 objects to represent other types of scalars).
 
 Returns a string representing the reference in serialized plist format.
@@ -214,7 +217,7 @@ sub create_from_ref {
 
 =item create_from_hash( HASH_REF )
 
-Provided for backward compatibility with L<Mac::PropertyList>: aliases
+Provided for backward compatibility with L<Mac::PropertyList|Mac::PropertyList>: aliases
 create_from_ref.
 
 =cut
@@ -223,7 +226,7 @@ create_from_ref.
 
 =item create_from_array( ARRAY_REF )
 
-Provided for backward compatibility with L<Mac::PropertyList>: aliases
+Provided for backward compatibility with L<Mac::PropertyList|Mac::PropertyList>: aliases
 create_from_ref.
 
 =cut
@@ -414,38 +417,41 @@ __END__
 =head1 BUGS / CAVEATS
 
 Any sane XML parser you can find to use with this module will decode
-XHTML-encoded entities in the original property list; L<Mac::PropertyList>
-doesn't touch them. Also, your XML parser may convert accented/special
-characters into '\x{ff}' sequences; these are preserved in their original
-encoding by L<Mac::PropertyList>.
+XHTML-encoded entities in the original property list;
+L<Mac::PropertyList|Mac::PropertyList> doesn't touch them. Also, your XML
+parser may convert accented/special characters into '\x{ff}' sequences; these
+are preserved in their original encoding by
+L<Mac::PropertyList|Mac::PropertyList>.
 
 Before version 0.80 of this module, characters invalid in XML were not
 serialized properly from create_from_ref(); before version 0.82, they were not
 serialized properly in plist_as_string(). Thanks to Jon Connell for pointing
 out these problems.
 
-Unlike L<Mac::PropertyList> and old versions (< 0.60) of
+Unlike L<Mac::PropertyList|Mac::PropertyList> and old versions (< 0.60) of
 Mac::PropertyList::SAX, this module does not trim leading and trailing
-whitespace from plist elements.  The difference in behavior is thought to be
+whitespace from plist elements. The difference in behavior is thought to be
 rarely noticeable; in any case, I believe this module's current behavior is the
 more correct. Any documentation that covers this problem would be appreciated.
 
 The behavior of create_from_hash and create_from_array has changed: these
 functions (which are really just aliases to the new create_from_ref function)
 are now capable of recursively serializing complex data structures. That is:
-for inputs that L<Mac::PropertyList>'s create_from_* functions handled, the
-output should be the same, I<but> this module supports inputs that
-L<Mac::PropertyList> does not.
+for inputs that L<Mac::PropertyList|Mac::PropertyList>'s create_from_*
+functions handled, the output should be the same, I<but> this module supports
+inputs that L<Mac::PropertyList|Mac::PropertyList> does not.
 
 Before version 0.83, this module left the selection of a SAX-based parser
-entirely to the discretion of L<XML::SAX::ParserFactory>. Unfortunately, it
-seems impossible to guarantee that the parser returned even supports XML
-(L<XML::SAX::RTF> could be returned), so it has become necessary to select a
-parser by default: L<XML::SAX::Expat>, which is now part of the dependencies of
-this module. If you know you will use another parser of a specific name, you
-can force installation without L<XML::SAX::Expat> and always specify the parser
-you wish to use by setting $XML::SAX::ParserPackage or the
-MAC_PROPERTYLIST_SAX_PARSER environment variable (see L</"DESCRIPTION">).
+entirely to the discretion of
+L<XML::SAX::ParserFactory|XML::SAX::ParserFactory>. Unfortunately, it seems
+impossible to guarantee that the parser returned even supports XML
+(L<XML::SAX::RTF|XML::SAX::RTF> could be returned), so it has become necessary
+to select a parser by default: L<XML::SAX::Expat|XML::SAX::Expat>, which is now
+part of the dependencies of this module. If you know you will use another
+parser of a specific name, you can force installation without
+L<XML::SAX::Expat|XML::SAX::Expat> and always specify the parser you wish to
+use by setting $XML::SAX::ParserPackage or the MAC_PROPERTYLIST_SAX_PARSER
+environment variable (see L</"DESCRIPTION">).
 
 Before version 0.86, this module contained a bug that caused double encoding of
 special characters as X[HT]ML entities. Thanks to Bion Pohl and
@@ -464,14 +470,14 @@ Darren M. Kulp, C<< <kulp @ cpan.org> >>
 
 =head1 THANKS
 
-brian d foy, who created the L<Mac::PropertyList> module whose tests were
-appropriated for this module.
+brian d foy, who created the L<Mac::PropertyList|Mac::PropertyList> module
+whose tests were appropriated for this module.
 
 Bion Pohl and L<http://ingz.com>, for bug report and patch submission.
 
 =head1 SEE ALSO
 
-L<Mac::PropertyList>, the inspiration for this module.
+L<Mac::PropertyList|Mac::PropertyList>, the inspiration for this module.
 
 =head1 COPYRIGHT AND LICENSE
 

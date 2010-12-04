@@ -63,7 +63,7 @@ our %EXPORT_TAGS = (
     parse  => [ qw(parse_plist parse_plist_fh parse_plist_file parse_plist_string) ],
 );
 
-our $VERSION = '0.84i';
+our $VERSION = '0.85';
 
 
 
@@ -453,12 +453,12 @@ L<XML::SAX::Expat|XML::SAX::Expat> and always specify the parser you wish to
 use by setting $XML::SAX::ParserPackage or the MAC_PROPERTYLIST_SAX_PARSER
 environment variable (see L</"DESCRIPTION">).
 
-Before version 0.86, this module contained a bug that caused double encoding of
+Before version 0.85, this module contained a bug that caused double encoding of
 special characters as X[HT]ML entities. Thanks to Bion Pohl and
-L<http://ingz.com/> for reporting this issue and supplying a fixed version. The
-implementation of the C<$ENCODE_ENTITIES> variable and the addition of the
+L<http://ingz-inc.com/> for reporting this issue and supplying a fixed version.
+The implementation of the C<$ENCODE_ENTITIES> variable and the addition of the
 C<$ENCODE_UNSAFE_CHARS> variable are also due to Bion Pohl and / or
-L<http://ingz.com/>.
+L<http://ingz-inc.com/>.
 
 =head1 SUPPORT
 
@@ -473,7 +473,7 @@ Darren M. Kulp, C<< <kulp @ cpan.org> >>
 brian d foy, who created the L<Mac::PropertyList|Mac::PropertyList> module
 whose tests were appropriated for this module.
 
-Bion Pohl and L<http://ingz.com>, for bug report and patch submission.
+Bion Pohl and L<http://ingz-inc.com>, for bug report and patch submission.
 
 =head1 SEE ALSO
 

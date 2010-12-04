@@ -2,10 +2,6 @@
 
 Mac::PropertyList::SAX - work with Mac plists at a low level, fast
 
-$Id: SAX.pm,v 1.3 2010/09/13 17:07:35 bpohl Exp $
-
-$Source: /cvs/AutoProcs/TRZ/Mac/PropertyList/SAX.pm,v $
-
 =cut
 
 package Mac::PropertyList::SAX;
@@ -32,11 +28,6 @@ selects for you. By default, L<XML::SAX::Expat> is used; to change the parser
 used, set the environment variable C<MAC_PROPERTYLIST_SAX_PARSER> to a value
 accepted by $XML::SAX::ParserPackage from L<XML::SAX::ParserFactory> (or set
 $XML::SAX::ParserPackage directly).
-
-NOTE: This is an altered version of the module made by ingZ, Inc.  It
-fixes a bug where the output was being XHTML encoded twice over.  It
-also now pays attention to the ENCODE_ENTITIES class variable and adds
-the ENCODE_UNSAFE_CHARS variable.
 
 =cut
 
@@ -195,7 +186,7 @@ sub create_from_ref {
             my ($hash) = @_;
             Mac::PropertyList::SAX::dict->write_open,
                 (map { "\t$_" } map {
-                    Mac::PropertyList::SAX::dict->write_key($OLD_BEHAVIOR?_escape($_):$_),
+                    Mac::PropertyList::SAX::dict->write_key($OLD_BEHAVIOR ? _escape($_) : $_),
                     _handle_value($hash->{$_}) } keys %$hash),
                 Mac::PropertyList::SAX::dict->write_close
         }
@@ -213,7 +204,7 @@ sub create_from_ref {
            if (UNIVERSAL::can($val, 'write')) { $val->write }
         elsif (UNIVERSAL::isa($val,  'HASH')) { _handle_hash ($val) }
         elsif (UNIVERSAL::isa($val, 'ARRAY')) { _handle_array($val) }
-        else { Mac::PropertyList::SAX::string->new($OLD_BEHAVIOR?_escape($val):$val)->write }
+        else { Mac::PropertyList::SAX::string->new($OLD_BEHAVIOR ? _escape($val) : $val)->write }
     }
 
     $Mac::PropertyList::XML_head .
@@ -377,12 +368,12 @@ package Mac::PropertyList::SAX::array;
 use base qw(Mac::PropertyList::array);
 package Mac::PropertyList::SAX::dict;
 use base qw(Mac::PropertyList::dict);
-sub write_key { "<key>" . (Mac::PropertyList::SAX::_escape($_[1])||'') . "</key>" }
+sub write_key { "<key>" . (Mac::PropertyList::SAX::_escape($_[1]) || '') . "</key>" }
 package Mac::PropertyList::SAX::Scalar;
 use base qw(Mac::PropertyList::Scalar);
 sub write {
     $_[0]->write_open .
-        (Mac::PropertyList::SAX::_escape($_[0]->value)||'') .
+        (Mac::PropertyList::SAX::_escape($_[0]->value) || '') .
             $_[0]->write_close
 }
 use overload '""' => sub { $_[0]->as_basic_data };
@@ -454,7 +445,14 @@ parser by default: L<XML::SAX::Expat>, which is now part of the dependencies of
 this module. If you know you will use another parser of a specific name, you
 can force installation without L<XML::SAX::Expat> and always specify the parser
 you wish to use by setting $XML::SAX::ParserPackage or the
-MAC_PROPERTYLIST_SAX_PARSER environment variable (see L<DESCRIPTION>).
+MAC_PROPERTYLIST_SAX_PARSER environment variable (see L</"DESCRIPTION">).
+
+Before version 0.86, this module contained a bug that caused double encoding of
+special characters as X[HT]ML entities. Thanks to Bion Pohl and
+L<http://ingz.com/> for reporting this issue and supplying a fixed version. The
+implementation of the C<$ENCODE_ENTITIES> variable and the addition of the
+C<$ENCODE_UNSAFE_CHARS> variable are also due to Bion Pohl and / or
+L<http://ingz.com/>.
 
 =head1 SUPPORT
 
@@ -469,16 +467,20 @@ Darren M. Kulp, C<< <kulp @ cpan.org> >>
 brian d foy, who created the L<Mac::PropertyList> module whose tests were
 appropriated for this module.
 
+Bion Pohl and L<http://ingz.com>, for bug report and patch submission.
+
 =head1 SEE ALSO
 
 L<Mac::PropertyList>, the inspiration for this module.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2007 by Darren Kulp
+Copyright (C) 2007-2010 by Darren Kulp
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.4 or,
 at your option, any later version of Perl 5 you may have available.
 
 =cut
+
+# vi: set et ts=4 sw=4: #

@@ -63,7 +63,7 @@ our %EXPORT_TAGS = (
     parse  => [ qw(parse_plist parse_plist_fh parse_plist_file parse_plist_string) ],
 );
 
-our $VERSION = '0.85';
+our $VERSION = '0.86';
 
 
 
@@ -488,6 +488,11 @@ L<http://ingz-inc.com/> for reporting this issue and supplying a fixed version.
 The implementation of the C<$ENCODE_ENTITIES> variable and the addition of the
 C<$ENCODE_UNSAFE_CHARS> variable are also due to Bion Pohl and / or
 L<http://ingz-inc.com/>.
+
+Before version 0.86, this module did not handle binary plists. Now it delegates
+binary plists to L<Mac::PropertyList|Mac::PropertyList>, but if used with
+filehandles, requires seekable streams (\*STDIN will work but only if it points
+to a seekable file, rather than a pipe).
 
 =head1 SUPPORT
 

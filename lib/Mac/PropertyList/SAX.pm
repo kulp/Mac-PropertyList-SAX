@@ -160,12 +160,41 @@ An alias to parse_plist, provided for better regularity compared to Perl SAX.
 *parse_plist_string = \&parse_plist;
 
 sub _parse {
-    my ($sub, $data) = @_;
+    # shift off first param in case we use `goto` later (leaving @_ with $data)
+    my $sub = shift;
+    my ($data) = @_;
 
-    my $handler = Mac::PropertyList::SAX::Handler->new;
-    XML::SAX::ParserFactory->parser(Handler => $handler)->$sub($data);
+    my $first;
+    my $fh;
+    my $delegate;
 
-    $handler->{struct}
+    # read initial bytes of file
+    # if we have a binary plist, delegate to Mac::PropertyList
+    if ($sub eq "parse_uri") {
+        open $fh, "<", $_[0];
+        $sub = "parse_file";
+        $_[0] = $fh;
+        # delegate will be set below
+    }
+
+    if ($sub eq "parse_file") {
+        read $_[0], $first, length "bplist";
+        seek $_[0], 0, 0 or die "Can't seek given filehandle"; # seek back to beginning
+        $delegate = \&Mac::PropertyList::parse_plist_fh;
+    } elsif ($sub eq "parse_string") {
+        $first = $_[0];
+        $delegate = \&Mac::PropertyList::parse_plist;
+    }
+
+    if ($first =~ /^bplist/) {
+        # binary plist -- delegate to non-SAX module
+        goto $delegate;
+    } else {
+        my $handler = Mac::PropertyList::SAX::Handler->new;
+        XML::SAX::ParserFactory->parser(Handler => $handler)->$sub($data);
+
+        return $handler->{struct};
+    }
 }
 
 =item create_from_ref( HASH_REF | ARRAY_REF )

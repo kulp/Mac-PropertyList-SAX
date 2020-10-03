@@ -1,0 +1,5 @@
+language: perl
+env:
+  - PERL5LIB=/home/travis/perl5
+perl:
+  - "5.30"

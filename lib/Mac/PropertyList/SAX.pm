@@ -198,6 +198,17 @@ sub _parse {
     }
 }
 
+=item create_from( HASH_REF | ARRAY_REF | STRING )
+
+Dispatches to C<create_from_ref> or C<create_from_string> depending on the type of the argument.
+
+=cut
+
+sub create_from {
+    my $sub = ref $_[0] && \&create_from_ref || \&create_from_string;
+    return &$sub;
+}
+
 =item create_from_ref( HASH_REF | ARRAY_REF )
 
 Create a plist from an array or hash reference.

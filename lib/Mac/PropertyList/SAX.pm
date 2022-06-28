@@ -441,6 +441,8 @@ sub write { $_[0]->Mac::PropertyList::SAX::Scalar::write }
 use overload '""' => sub { $_[0]->as_basic_data };
 package Mac::PropertyList::SAX::data;
 use base qw(Mac::PropertyList::data Mac::PropertyList::SAX::Scalar);
+package Mac::PropertyList::SAX::uid;
+use base qw(Mac::PropertyList::uid Mac::PropertyList::SAX::Scalar);
 package Mac::PropertyList::SAX::Boolean;
 use Object::MultiType;
 use base qw(Mac::PropertyList::Boolean Object::MultiType);

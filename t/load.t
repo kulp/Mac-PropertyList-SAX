@@ -43,7 +43,7 @@ received a copy of this license with this distribution.
 =cut
 
 my @classes = qw(
-	Mac::PropertyList
+	Mac::PropertyList::SAX
 	Mac::PropertyList::ReadBinary
 	Mac::PropertyList::WriteBinary
 	);

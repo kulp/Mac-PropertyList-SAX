@@ -47,7 +47,7 @@ received a copy of this license with this distribution.
 
 use File::Spec::Functions;
 
-my $class = 'Mac::PropertyList';
+my $class = 'Mac::PropertyList::SAX';
 my @methods = qw( as_perl );
 
 use_ok( $class ) or BAIL_OUT( "$class did not compile\n" );
@@ -60,7 +60,7 @@ ok( -e $test_file, "Test file for binary plist is there" );
 
 {
 my $plist = &{$parse_fqname}( $test_file );
-isa_ok( $plist, "${class}::dict" );
+isa_ok( $plist, "Mac::PropertyList::dict" );
 can_ok( $plist, @methods );
 
 my $perl = $plist->as_perl;

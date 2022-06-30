@@ -53,7 +53,7 @@ received a copy of this license with this distribution.
 
 =cut
 
-my $class = 'Mac::PropertyList';
+my $class = 'Mac::PropertyList::SAX';
 my @import = qw( parse_plist parse_plist_file );
 
 use_ok( $class, @import ) or BAIL_OUT( "$class did not compile\n" );

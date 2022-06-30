@@ -60,7 +60,7 @@ eval "use Time::HiRes";
 
 if( $@ ) { plan skip_all => "Needs Time::HiRes to time parsing" }
 
-my $class = 'Mac::PropertyList';
+my $class = 'Mac::PropertyList::SAX';
 use_ok( $class ) or BAIL_OUT( "$class did not compile\n" );
 
 my $parse_fqname = $class . '::parse_plist';

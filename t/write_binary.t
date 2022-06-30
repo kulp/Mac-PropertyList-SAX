@@ -68,7 +68,7 @@ BEGIN {
     can_ok( $class, qw( as_string ) );
 }
 
-use_ok( 'Mac::PropertyList' ) or BAIL_OUT( "Mac::PropertyList did not compile\n" );
+use_ok( 'Mac::PropertyList::SAX' ) or BAIL_OUT( "Mac::PropertyList::SAX did not compile\n" );
 
 # Test basic (scalar) data types. Make a single-object plist
 # containing each one and compare it to the expected representation.

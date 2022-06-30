@@ -152,7 +152,7 @@ is(
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Test with real and data
 {
-use_ok( 'Mac::PropertyList', qw(parse_plist_file) );
+use_ok( 'Mac::PropertyList::SAX', qw(parse_plist_file) );
 
 my $test_file = catfile( qw( plists binary.plist ) );
 my $plist = parse_plist_file( $test_file );

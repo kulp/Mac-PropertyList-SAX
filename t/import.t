@@ -42,7 +42,7 @@ received a copy of this license with this distribution.
 
 =cut
 
-my $class = 'Mac::PropertyList';
+my $class = 'Mac::PropertyList::SAX';
 use_ok( $class ) or BAIL_OUT( "$class did not compile\n" );
 
 ok( ! defined( &parse_plist ), "parse_plist is not defined yet" );
@@ -55,7 +55,7 @@ foreach my $name ( @subs ) {
 	ok( ! defined( &$name ), "$name is not defined yet" );
 	}
 
-Mac::PropertyList->import( ":all" );
+Mac::PropertyList::SAX->import( ":all" );
 
 foreach my $name ( @subs ) {
 	ok( defined( &$name ), "$name is now defined yet" );

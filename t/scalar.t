@@ -50,7 +50,7 @@ received a copy of this license with this distribution.
 
 =cut
 
-my $class = 'Mac::PropertyList';
+my $class = 'Mac::PropertyList::SAX';
 use_ok( $class ) or BAIL_OUT( "$class did not compile\n" );
 
 ########################################################################

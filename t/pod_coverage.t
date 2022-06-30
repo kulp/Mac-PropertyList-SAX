@@ -9,7 +9,7 @@ if( $@ ) {
 else {
 	plan tests => 1;
 
-	pod_coverage_ok( "Mac::PropertyList", {
+	pod_coverage_ok( "Mac::PropertyList::SAX", {
 		trustme => [ qr/^read_/, qr/indent/ ],
 		},
 		);

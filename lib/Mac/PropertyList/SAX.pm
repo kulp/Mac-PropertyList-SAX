@@ -37,7 +37,6 @@ C<$XML::SAX::ParserPackage> directly).
 use strict;
 use warnings;
 
-use Carp qw(carp);
 use HTML::Entities qw(encode_entities_numeric);
 use HTML::Entities::Numbered qw(hex2name name2hex_xml);
 # Passthrough function
@@ -131,7 +130,7 @@ sub parse_plist_file {
     if (ref $file) {
         parse_plist_fh($file);
     } else {
-        carp("parse_plist_file: file [$file] does not exist!"), return unless -e $file;
+        die "parse_plist_file: file [$file] does not exist!" unless -e $file;
         _parse("parse_uri", $file);
     }
 }

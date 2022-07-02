@@ -6,7 +6,7 @@ use Test::More;
 
 =head1 NAME
 
-false_key.t
+string.t
 
 =head1 SYNOPSIS
 
@@ -18,22 +18,14 @@ false_key.t
 	% prove
 
 	# run a single test
-	% perl -Ilib t/false_key.t
+	% perl -Ilib t/string.t
 
 	# run a single test
-	% prove t/false_key.t
+	% prove t/string.t
 
 =head1 AUTHORS
 
 Original author: brian d foy C<< <bdfoy@cpan.org> >>
-
-Contributors:
-
-=over 4
-
-=item Andy Lester C<< <andy@petdance.com> >>
-
-=back
 
 =head1 SOURCE
 
@@ -53,45 +45,34 @@ received a copy of this license with this distribution.
 my $class = 'Mac::PropertyList::SAX';
 use_ok( $class ) or BAIL_OUT( "$class did not compile\n" );
 
+my $type_class = $class . '::string';
 my $parse_fqname = $class . '::parse_plist';
 
-my $good_dict =<<"HERE";
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>0</key>
-	<string>Roscoe</string>
-	<key> </key>
-	<string>Buster</string>
-</dict>
-</plist>
-HERE
-
-my $bad_dict =<<"HERE";
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key></key>
-	<string>Roscoe</string>
-</dict>
-</plist>
-HERE
-
-my $ok = eval {
-	my $plist = &{$parse_fqname}( $good_dict );
+subtest empty_object => sub {
+	my $string = $type_class->new;
+	isa_ok( $string, $type_class, "Make empty object fo $type_class" );
 	};
-ok( $ok, "Zero and space are valid key values" );
 
-TODO: {
-    local $TODO = "Doesn't work, but poor Andy doesn't know why.";
+subtest parse => sub {
+	my $plist = <<"HERE";
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<string>Mimi</string>
+</plist>
+HERE
 
-    my $ok = eval {
-		my $plist = &{$parse_fqname}( $good_dict );
-		};
+	$plist = &{$parse_fqname}( $plist );
+	isa_ok( $plist, $type_class, "Make $type_class object from plist string" );
+	};
 
-	like( $@, qr/key not defined/, "Empty key causes $parse_fqname to die" );
-	}
+subtest create => sub {
+	$class->import( 'create_from_string' );
+	ok( defined &create_from_string );
+
+	my $plist = create_from_string( 'Roscoe' );
+
+	like $plist, qr|<string>Roscoe</string>|, 'Has the string node';
+	};
 
 done_testing();

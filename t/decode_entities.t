@@ -6,7 +6,7 @@ use Test::More;
 
 =head1 NAME
 
-container.t
+decode_entities.t
 
 =head1 SYNOPSIS
 
@@ -18,10 +18,10 @@ container.t
 	% prove
 
 	# run a single test
-	% perl -Ilib t/container.t
+	% perl -Ilib t/decode_entities.t
 
 	# run a single test
-	% prove t/container.t
+	% prove t/decode_entities.t
 
 =head1 AUTHORS
 
@@ -45,10 +45,25 @@ received a copy of this license with this distribution.
 my $class = 'Mac::PropertyList::SAX';
 use_ok( $class ) or BAIL_OUT( "$class did not compile\n" );
 
-foreach my $type ( qw(dict array) ) {
-	my $type_class = $class . '::'. $type;
-	my $dict = $type_class->new;
-	isa_ok( $dict, $type_class );
-	}
+my $parse_fqname = $class . '::parse_plist';
+
+my $array =<<"HERE";
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<string>Mimi &amp; Buster</string>
+	<string>Buster &quot;Bean&quot;</string>
+</array>
+</plist>
+HERE
+
+use Data::Dumper;
+
+my $plist  = &{$parse_fqname}( $array );
+diag( Dumper( $plist ) . "\n" ) if $ENV{DEBUG};
+
+is( $plist->[0]->value, 'Mimi & Buster' );
+is( $plist->[1]->value, 'Buster "Bean"' );
 
 done_testing();

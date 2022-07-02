@@ -1,4 +1,4 @@
-# Adapted from Mac::PropertyList (by comdog) for use in Mac::PropertyList::SAX (by kulp)
+# Adapted from Mac::PropertyList (by brian d foy) for use in Mac::PropertyList::SAX (by kulp)
 
 use Test::More tests => 4;
 

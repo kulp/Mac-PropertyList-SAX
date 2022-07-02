@@ -191,7 +191,9 @@ sub _parse {
         goto $delegate;
     } else {
         my $handler = Mac::PropertyList::SAX::Handler->new;
-        XML::SAX::ParserFactory->parser(Handler => $handler)->$sub($data);
+        eval {
+            XML::SAX::ParserFactory->parser(Handler => $handler)->$sub($data);
+        } or die "doesn't look like a valid plist: $@";
 
         return $handler->{struct};
     }

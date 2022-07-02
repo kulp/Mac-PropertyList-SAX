@@ -67,9 +67,9 @@ test_plist( $plist );
 my $filename;
 1 while ($filename = 1 + rand(100000) and -e $filename);
 
-my $plist = parse_plist_file( $filename );
+my $plist = eval { parse_plist_file( $filename ) };
 
-ok( !$plist, "return value is false for missing file" );
+ok( length $@, "parse_plist_file dies for missing file" );
 }
 
 

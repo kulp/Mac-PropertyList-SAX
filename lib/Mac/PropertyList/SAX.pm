@@ -37,7 +37,6 @@ C<$XML::SAX::ParserPackage> directly).
 use strict;
 use warnings;
 
-use Carp qw(carp);
 use HTML::Entities qw(encode_entities_numeric);
 use HTML::Entities::Numbered qw(hex2name name2hex_xml);
 # Passthrough function
@@ -131,7 +130,7 @@ sub parse_plist_file {
     if (ref $file) {
         parse_plist_fh($file);
     } else {
-        carp("parse_plist_file: file [$file] does not exist!"), return unless -e $file;
+        die "parse_plist_file: file [$file] does not exist!" unless -e $file;
         _parse("parse_uri", $file);
     }
 }
@@ -192,10 +191,23 @@ sub _parse {
         goto $delegate;
     } else {
         my $handler = Mac::PropertyList::SAX::Handler->new;
-        XML::SAX::ParserFactory->parser(Handler => $handler)->$sub($data);
+        eval {
+            XML::SAX::ParserFactory->parser(Handler => $handler)->$sub($data);
+        } or die "doesn't look like a valid plist: $@";
 
         return $handler->{struct};
     }
+}
+
+=item create_from( HASH_REF | ARRAY_REF | STRING )
+
+Dispatches to C<create_from_ref> or C<create_from_string> depending on the type of the argument.
+
+=cut
+
+sub create_from {
+    my $sub = ref $_[0] && \&create_from_ref || \&create_from_string;
+    return &$sub;
 }
 
 =item create_from_ref( HASH_REF | ARRAY_REF )
@@ -430,6 +442,8 @@ sub write { $_[0]->Mac::PropertyList::SAX::Scalar::write }
 use overload '""' => sub { $_[0]->as_basic_data };
 package Mac::PropertyList::SAX::data;
 use base qw(Mac::PropertyList::data Mac::PropertyList::SAX::Scalar);
+package Mac::PropertyList::SAX::uid;
+use base qw(Mac::PropertyList::uid Mac::PropertyList::SAX::Scalar);
 package Mac::PropertyList::SAX::Boolean;
 use Object::MultiType;
 use base qw(Mac::PropertyList::Boolean Object::MultiType);
@@ -524,7 +538,7 @@ L<Mac::PropertyList|Mac::PropertyList>, the inspiration for this module.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2007-2017 by Darren Kulp
+Copyright (C) 2007-2022 by Darren Kulp
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.4 or,

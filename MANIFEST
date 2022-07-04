@@ -28,7 +28,8 @@ plists/test1.plist
 plists/test2.plist
 plists/test3.plist
 plists/the_perl_review.abcdp
-README
+README.md
+README.pod
 t/array.t
 t/as_perl.t
 t/bad_plist.t

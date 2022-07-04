@@ -21,8 +21,8 @@ To install this module, run the following commands:
 
 Copyright (C) 2006-2022 Darren M. Kulp
 
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+This program is free software under the terms of the Artistic License 2.0; see
+the accompanying [`LICENSE`][lic] file for full terms.
 
 [pod]: README.pod
 [mp]: https://github.com/briandfoy/mac-propertylist

@@ -538,11 +538,10 @@ L<Mac::PropertyList|Mac::PropertyList>, the inspiration for this module.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2007-2022 by Darren Kulp
+Copyright (C) 2006-2022 by Darren Kulp
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.4 or,
-at your option, any later version of Perl 5 you may have available.
+This program is free software under the terms of the Artistic License 2.0; see
+the accompanying LICENSE file for full terms.
 
 =cut
 

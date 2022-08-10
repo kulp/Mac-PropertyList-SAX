@@ -1,7 +1,6 @@
-\.github/workflows/.*
-\.git
-blib
-pm_to_blib
+\.git.*
+\bblib$
+\bpm_to_blib$
 .*\.bak
-Makefile
-MYMETA.(json|yml)
+\bMakefile$
+\bMYMETA.(json|yml)$

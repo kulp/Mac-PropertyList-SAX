@@ -63,7 +63,7 @@ our %EXPORT_TAGS = (
     parse  => [ qw(parse_plist parse_plist_fh parse_plist_file parse_plist_string) ],
 );
 
-our $VERSION = '0.91';
+our $VERSION = '1.000';
 
 
 

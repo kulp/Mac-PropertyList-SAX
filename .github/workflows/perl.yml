@@ -9,7 +9,9 @@ jobs:
     strategy:
       matrix:
         os: ['ubuntu-latest', 'macos-latest']
-        perl: [ '5.36' ]
+        perl:
+          - '5.36'
+          - '5.40'
     name: Perl ${{ matrix.perl }} on ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3

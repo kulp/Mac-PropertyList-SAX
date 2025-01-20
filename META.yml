@@ -1,7 +1,7 @@
 ---
 abstract: 'work with Mac plists at a low level, fast'
 author:
-  - 'Darren M. Kulp, C<< <kulp @ cpan.org> >>'
+  - 'Darren M. Kulp, C<< <darren@kulp.ch> >>'
 build_requires:
   ExtUtils::MakeMaker: 6.36
   LWP: 0
@@ -34,4 +34,4 @@ requires:
   enum: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: '1.001'
+version: '1.002'

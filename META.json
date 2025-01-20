@@ -1,7 +1,7 @@
 {
    "abstract" : "work with Mac plists at a low level, fast",
    "author" : [
-      "Darren M. Kulp, C<< <kulp @ cpan.org> >>"
+      "Darren M. Kulp, C<< <darren@kulp.ch> >>"
    ],
    "dynamic_config" : "1",
    "generated_by" : "Module::Install version 1.19, CPAN::Meta::Converter version 2.150010",
@@ -54,5 +54,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "1.001"
+   "version" : "1.002"
 }
